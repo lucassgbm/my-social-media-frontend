@@ -1,0 +1,18 @@
+services:
+  frontend:
+    image: CHANGEIMAGE
+    ports:
+      - "3000:3000"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == worker
+    networks:
+      - CHANGE_NETWORK
+
+networks:
+  CHANGE_NETWORK:
+    external: true
