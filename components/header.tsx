@@ -36,8 +36,8 @@ export default function Header() {
     const imageUser = myInfo?.photo ?? '/imgs/placeholder.png';
 
     return (
-        <header className="flex w-full bg-white dark:bg-neutral-900 ">
-            <nav className="w-full shadow-md px-6 py-2 flex items-center justify-between">
+        <header className="flex w-full bg-white dark:bg-neutral-900 justify-center">
+            <nav className="w-full max-w-7xl shadow-md px-6 py-2 flex items-center justify-between">
 
                 <div className="w-1/4 text-xl font-bold dark:text-white text-neutral-800">Logo</div>
 
@@ -105,7 +105,7 @@ export default function Header() {
                 </Button>
 
                 {mobileOpen && (
-                    <div className="absolute top-14 left-0 w-full dark:bg-neutral-900 bg-white shadow-md flex flex-col p-4 gap-4 md:hidden z-50">
+                    <div className="absolute top-14 left-0 w-full dark:bg-neutral-900 bg-white shadow-md flex flex-col p-4 gap-4 md:hidden z-100">
                         <div className="flex w-full bg-neutral-100 dark:bg-neutral-700 p-2 rounded-2xl px-5 pl-5">
                             <SearchIcon className="dark:text-white" />
                             <input className="ml-2 w-full focus:outline-none w-full text-gray-600 dark:text-white rounded-sm ml-2 pr-4" type="text" placeholder="Search"></input>

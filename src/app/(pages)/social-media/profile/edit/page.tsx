@@ -70,19 +70,6 @@ export default function Home(){
 
                                 <div className="w-full sm:w-[50%] flex flex-col">
 
-                                    <div className="flex flex-row justify-center">
-
-                                        <RingImage>
-
-                                            <Image
-                                                src={"/imgs/placeholder.png"}
-                                                alt="Capa do perfil"
-                                                width={500}
-                                                height={500}
-                                                className="w-[200px] aspect-[1/1] object-cover rounded-full"
-                                            />
-                                        </RingImage>
-                                    </div>
                                     <div className="flex flex-col mb-2">
                                         <label className="font-semibold text-xs mb-2">Nome completo</label>
 

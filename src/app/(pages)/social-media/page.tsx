@@ -26,6 +26,7 @@ import PinIcon from "../../../../components/icons/pin";
 import ClockIcon from "../../../../components/icons/clock";
 import CommunityIcon from "../../../../components/icons/community";
 import Link from "next/link";
+import Sidebar from "../../../../components/sidebar";
 
 interface NewPost {
   description: string;
@@ -174,13 +175,13 @@ export default function Home() {
 
   return (
     <>
-
+      <Sidebar />
       <div className="col-span-full sm:col-span-8 gap-6">
 
         <ListStories />
           <div className="flex flex-row gap-6">
             <div className="w-full sm:w-[3/5] h-full rounded-2xl mb-4">
-              <Container className="flex flex-row gap-2 mb-4 items-center rounded-2xl">
+              <Container className="flex flex-row gap-2 mb-4 items-center rounded-md">
                 {myInfo && (
 
                   <>
@@ -244,7 +245,7 @@ export default function Home() {
 
             </div>
             <div className="hidden sm:block w-[2/5]">
-              <Container className="mb-4 rounded-2xl">
+              <Container className="mb-4 rounded-md">
                 {event && (
                   <>
                     <div className="flex flex-row justify-between">
@@ -328,7 +329,7 @@ export default function Home() {
                 )}
               </Container>
 
-              <Container className="mb-4 rounded-2xl">
+              <Container className="mb-4 rounded-md">
                 <div className="flex flex-row justify-between">
                   <label className="text-sm font-semibold">Eventos sugeridos</label>
                   <CalendarIcon />
@@ -374,7 +375,7 @@ export default function Home() {
                     Ver mais 
                   </ColorButtom>
               </Container>
-              <Container className="mb-4 rounded-2xl">
+              <Container className="mb-4 rounded-md">
                   <div className="flex flex-row justify-between">
                     <label className="text-sm font-semibold">Comunidades</label>
                     <CommunityIcon className="size-5" />
@@ -501,10 +502,10 @@ export default function Home() {
           onChange={handleFileChange}
         />
         {preview && (
-          <div className="w-full flex flex-col p-2 items-center">
+          <div className="w-full flex flex-col items-center h-[250px] overflow-y-scroll">
             <Image
               src={preview}
-              className="w-full sm:w-[350px] h-[350px] object-cover"
+              className="w-full h-[350px] object-cover"
               alt="preview"
               width={350}
               height={350}

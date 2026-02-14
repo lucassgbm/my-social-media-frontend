@@ -1,11 +1,10 @@
 'use client';
 
-
 import '@splidejs/react-splide/css';
 import Image from "next/image";
 import Link from "next/link";
 import Container from "../../../../../../components/container";
-import Card from "../../../../../../components/card";
+import { Splide, SplideSlide } from '@splidejs/react-splide';
 import ColorButton from "../../../../../../components/color-button";
 import PlusIcon from "../../../../../../components/icons/plus";
 import { useContext, useEffect, useRef, useState } from "react";
@@ -23,6 +22,12 @@ import LoadingSpinner from '../../../../../../components/loading-spinner';
 import { get, postFormData } from '../../../../../api/services/request';
 import { User } from 'next-auth';
 import Skeleton from '../../../../../../components/skeleton';
+import ProfileIcon from '../../../../../../components/icons/profile';
+import EllipsisVerticalIcon from '../../../../../../components/icons/ellipsis';
+import HeartIcon from '../../../../../../components/icons/heart';
+import '@splidejs/react-splide/css';
+import PinIcon from '../../../../../../components/icons/pin';
+import UsersIcon from '../../../../../../components/icons/users';
 
 interface UserPhoto {
     id: number;
@@ -30,15 +35,41 @@ interface UserPhoto {
     created_at: string;
 }
 
+interface Likes {
+  count: number;
+}
+
+interface Comments {
+  count: number;
+}
+
+interface Post {
+  id: number;
+  description: string;
+  photo_path?: string | null;
+  created_at: string;
+  user: User;
+  likes: Likes;
+  comments: Comments;
+}
+
+interface Posts {
+  feed: Post[];
+}
+
 export default function Home(){
 
     useEffect(() => {
         getUserPhotos();
+        getUserPosts();
     },[]);
 
     const context = useContext(AppContext);
     const { myInfo } = context;
-    const [tab, setTab] = useState("fotos");
+    // const [tab, setTab] = useState("fotos");
+
+    const [userPosts, setUserPosts] = useState<Posts | []>([]);
+
     const [toaster, setToaster] = useState({ 
         show: false, 
         message: "", 
@@ -54,6 +85,33 @@ export default function Home(){
     const [preview, setPreview] = useState<string | null>(null);
     
     const inputRef = useRef<HTMLInputElement>(null);
+
+    const sugestedUsers = [
+        {
+            id: 1,
+            name: "João",
+            photo_path: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80",
+            location: "Rio de Janeiro - RJ"
+        },
+        {
+            id: 2,
+            name: "Maria",
+            photo_path: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80",
+            location: "São Paulo - SP"
+        },
+        {
+            id: 3,
+            name: "Pedro",
+            photo_path: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80",
+            location: "Curitiba - PR"
+        },
+        {
+            id: 4,
+            name: "Ana",
+            photo_path: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80",
+            location: "Belo Horizonte - MG"
+        },
+    ]
 
     const handleButtonClick = () => {
         inputRef.current?.click();
@@ -75,6 +133,20 @@ export default function Home(){
 
         }
     };
+
+    async function getUserPosts() {
+    
+        // setLoadingFeed(true);
+        try {
+          const response = await get("/social-media/feed");
+          console.log(response.data);
+          setUserPosts(response.data);
+        } catch (error: any) {
+    
+          setToaster({...toaster, show: true, message: "Erro ao carregar posts", status: 'error', title: "Posts"});
+        }
+        // setLoadingFeed(false);
+    }
 
     async function getUserPhotos(){
 
@@ -121,22 +193,28 @@ export default function Home(){
     return(
         <>
 
-            <div className="col-span-full sm:col-span-8 gap-4">
+            <div className="col-span-full sm:col-span-7 gap-4">
                 <Container className="h-full " padding="p-0">
-                    {/* <div className="flex flex-col gap-4 mb-4 flex-wrap">
-                        <div className="flex flex-col gap-2 border-b border-neutral-200 dark:border-neutral-800 p-4">
-                            <p className="text-sm">
-                                <span className="font-semibold text-neutral-400">
-                                    <a href="/social-media">Home / </a> 
-                                    
-                                </span> Perfil
-                            </p>
-                            
+                    
+                    <div className="relative w-full p-4 border-b border-neutral-200 dark:border-neutral-800">
+                        <Image 
+                            src="/imgs/cover-profile.jpg"
+                            alt="Capa do perfil"
+                            width={500}
+                            height={500}
+                            className="absolute inset-0 w-full h-[200px] object-cover z-40"
+                            unoptimized 
+                        />
+                        <div className="flex flex-row justify-end items-start h-[80px]">
+                            <Button className="text-sm font-semibold z-50">
+                                <div className="flex flex-row gap-2 items-center">
+                                    <PencilSquareIcon className="size-4"/>
+
+                                </div>
+                            </Button>
                         </div>
-                    </div> */}
-                    <div className="w-full p-4">
-                        <div className="flex flex-row gap-4 mb-4 items-center">
-                            <RingImage>
+                        <div className="relative w-full h-full flex flex-col gap-4 mb-4 z-50">
+                            <RingImage className='w-[200px]'>
 
                                 <Image
                                     src={imageUser}
@@ -150,7 +228,14 @@ export default function Home(){
                             <div className="w-full flex flex-col justify-end">
                                 
                                 <div className="flex flex-row justify-between">
-                                    <h1 className="text-2xl font-semibold mb-4">{myInfo?.name}</h1>
+                                    <div className="flex flex-col mb-4">
+                                        <h1 className="text-2xl font-semibold">{myInfo?.name}</h1>
+                                        <div className="flex flex-row gap-2 items-center">
+                                            <PinIcon className="size-3"/>
+                                            <p className="text-sm text-gray-400">Brasília - DF</p>
+                                        </div>
+                                    </div>
+
                                     <Link href="/social-media/profile/edit">
                                         <Button className="text-sm font-semibold">
                                             <div className="flex flex-row gap-2 items-center">
@@ -160,50 +245,47 @@ export default function Home(){
                                         </Button>
                                     </Link>
                                 </div>
-                                <p className="text-sm mb-4">{myInfo?.autodescription}</p>
+                                <p className="text-sm mb-4 text-gray-400">{myInfo?.autodescription}</p>
                                 <div className="w-full flex flex-row gap-2 mb-4 items-center">
 
-                                    <ColorButton className="rounded-md text-sm font-semibold h-[35px]">
-                                        <div className="flex flex-row gap-2 items-center">
+                                    <ColorButton className="rounded-full text-sm font-semibold h-[35px] w-[100px] items-center">
+                                        <div className="flex flex-row gap-2 justify-center items-center">
+                                            <ProfileIcon className="size-4"/>
                                             Seguir
 
                                         </div>
                                     </ColorButton>
-                                    <ColorButton className="rounded-md text-sm font-semibold h-[35px]">
-                                        <div className="flex flex-row gap-2 items-center">
+                                    <ColorButton className="rounded-full text-sm font-semibold h-[35px] w-[140px] items-center">
+                                        <div className="flex flex-row gap-2 justify-center items-center">
                                             <MessageIcon className="size-4"/>
-
+                                            Mensagem
+                                        </div>
+                                    </ColorButton>
+                                    <ColorButton className="rounded-full text-sm font-semibold h-[35px] aspect-square items-center">
+                                        <div className="flex flex-row gap-2 justify-center items-center">
+                                            <EllipsisVerticalIcon className="size-5"/>
+                                            
                                         </div>
                                     </ColorButton>
 
                                 </div>
-                                <div className="w-[40%] flex flex-row gap-2">
-                                    <Card className="w-full rounded-2xl">
-                                        <span className="text-xs text-neutral-400 font-semibold">200 Amigos</span>
-                                    </Card>
-                                    <Card className="w-full rounded-2xl">
-                                        <span className="text-xs text-neutral-400 font-semibold">10 Comunidades</span>
-                                    </Card>
+                                <div className="flex flex-row gap-2">
+                                    <p className="text-sm font-semibold text-neutral-400">2.000 Seguidores</p>
                                 </div>
                             </div>
                         </div>
-
+                        
                     </div>
-                    <div className="w-full flex flex-row pl-4 border-b border-neutral-200 dark:border-neutral-800">
-                        <div className="flex flex-row gap-2">
-                            <div className="p-2 hover:bg-neutral-800 border-b-4 border-neutral-800 cursor-pointer font-semibold">Fotos</div>
-                            <div className="p-2 hover:bg-neutral-800 border-b-4 border-transparent cursor-pointer font-semibold">Posts</div>
-                            <div className="p-2 hover:bg-neutral-800 border-b-4 border-transparent cursor-pointer font-semibold">Amigos</div>
-                            <div className="p-2 hover:bg-neutral-800 border-b-4 border-transparent cursor-pointer font-semibold">Comunidades</div>
+
+                    <div className='w-full flex flex-row p-4'>
+                        <div className="flex rounded-2xl  justify-center items-center hover:opacity-90" >
+                            <button onClick={() => setModalNewPhoto(true)} className="flex flex-row gap-2 rounded-full border-1 border-neutral-800 items-center justify-center p-4 cursor-pointer">
+                                <PlusIcon className="size-6"/>
+                            </button>
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 p-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-4 border-b border-neutral-200 dark:border-neutral-800">
                         
-                        <button onClick={() => setModalNewPhoto(true)}>
-                            <Card className="flex w-full rounded-2xl aspect-[1/1] justify-center items-center hover:opacity-90 cursor-pointer" >
-                                    <PlusIcon className="size-10"/>
-                            </Card>
-                        </button>
                         {userPhotos?.length !== 0 && userPhotos?.map((photo) => (
                             <div key={photo.id}>
                                 <Image
@@ -225,8 +307,120 @@ export default function Home(){
                             </>
                         )}
                     
-                    </div>                    
-                    
+                    </div> 
+                    <div className="p-4">
+                        <h1 className="text-2xl font-semibold mb-4">Posts</h1>
+                    </div>
+                    <div className="grid grid-cols-1 p-4 gap-4">
+                        <Splide
+                            options={{
+                                type: 'loop',
+                                perPage: 2,
+                                breakpoints: {
+                                    640: {
+                                        perPage: 1,
+                                    },
+                                    1024: {
+                                        perPage: 2,
+                                    },
+                                },
+                                gap: '1rem',
+                                loop: true,
+                                arrows: true,
+                                autoplay: false
+                            
+                            }}
+                            aria-label="My Favorite Images"
+                        >
+                            {userPosts && userPosts?.map((post) => {
+                                
+                                const imageUser = post.user.photo ?? '/imgs/placeholder.png';
+                                
+                                const imagePost = post.photo_path ?? null;
+                                return (
+                                    
+                                    <SplideSlide className="flex flex-col border-1 border-neutral-200 dark:border-neutral-800 p-4 rounded-md" key={post.id}>
+
+                                        <div className="flex flex-row gap-4 items-center mb-4">
+                                            {imageUser && (
+                                                <Image
+                                                src={imageUser}
+                                                alt="Foto de perfil"
+                                                className="rounded-full aspect-[1/1]"
+                                                width={50}
+                                                height={50}
+                                                unoptimized
+                                                />
+                                            )}
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-semibold">{post.user.name}</span>
+                                                <span className="text-sm font-normal text-gray-400">{post.created_at}</span>
+                                            </div>
+                                        </div>
+                        
+                                        <p className="text-sm py-4">{post.description}</p>
+                                        {imagePost && (
+                                            <Image
+                                            src={imagePost}
+                                            alt="Imagem do Post"
+                                            className="w-full rounded"
+                                            width={500}
+                                            height={500}
+                                            unoptimized
+                                            />
+                                        )}
+                        
+                        
+                                        <div className="w-full flex flex-row gap-4 items-center mt-4">
+                                            <div className="flex flex-row gap-1 items-center">
+                                                <HeartIcon />
+                                                <span className="text-sm font-semibold">{post.likes.count}</span>
+                                            </div>
+                                            <div className="flex flex-row gap-1 items-center">
+                                                <MessageIcon />
+                                                <span className="text-sm font-semibold">{post.comments.count}</span>
+                                            </div>
+                                        </div>
+                                    </SplideSlide>
+                                )
+                            })}
+                        </Splide>
+                        </div>
+                            
+                            
+                    </Container>
+            </div>
+            <div className="col-span-full sm:col-span-3 gap-4">
+                <Container className="h-full " padding="p-0">
+                    <div className="flex flex-col p-4">
+                        <h1 className="text-lg font-semibold mb-4">Siga outras pessoas</h1>
+                        {sugestedUsers && sugestedUsers.map((user) => (
+                            
+                            <div className="w-full  flex flex-row gap-2 px-4 py-8 justify-between items-center" key={user.id}>
+                                <div className="flex flex-row items-center">
+
+                                    <Image
+                                        src={user?.photo_path ?? '/imgs/placeholder.png'}
+                                        alt="Foto de perfil"                            
+                                        className="w-[60px] w-[60px] rounded-full aspect-[1/1]"
+                                        width={50}
+                                        height={50}
+                                        unoptimized
+                                    />
+                                    <div className="flex flex-col ml-2">
+                                        <span className="text-sm font-semibold">{user?.name}</span>
+                                        <p className="text-xs font-normal text-gray-400">{user?.location}</p>
+                                    </div>
+                                </div>
+                                <Button onClick={() => setModalNewPhoto(true)} className="text-sm text-semibold">
+                                    <div className="flex flex-row items-center">
+                                        <UsersIcon className="size-4" /><span>+</span>
+                                    </div>
+                                </Button>
+                            </div>
+                        ))}
+
+                    </div>
                 </Container>
             </div>
             <Modal isOpen={modalNewPhoto} onClose={() => setModalNewPhoto(false)} title="Nova Foto">

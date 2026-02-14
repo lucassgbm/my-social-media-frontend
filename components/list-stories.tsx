@@ -17,9 +17,9 @@ import React, {
 } from "react";
 import CameraIcon from "./icons/camera";
 import Container from "./container";
-import { Splide, SplideSlide } from '@splidejs/react-splide';
-import '@splidejs/react-splide/css';
+
 import PlusIcon from "./icons/plus";
+import TakePhoto from "./photos/take-photo";
 
 
 
@@ -562,20 +562,15 @@ export function StoriesBar({ items = [], setStory, storyRingSize = 30 }: any) {
         })}
       
       </Container>
-      <Modal 
-          isOpen={isOpen} 
-          onClose={() => setModalNewStory(false)}
-          title="Novo story"
-      >
-          <div className="flex flex-col gap-4">
-              <div className="flex justify-between items-center pb-2">
-                  <button onClick={() => setModalNewStory(false)} className="text-gray-500 hover:text-gray-700">
-                      <span className="sr-only">Close</span>
-                  </button>    
-              </div>  
-              
-          </div>
-      </Modal>
+
+      {isOpen && (
+          <TakePhoto 
+            setModalNewStory={setModalNewStory}
+            setIsOpen={setModalNewStory}
+            
+          />
+      )}
+
     </>
   );
 }

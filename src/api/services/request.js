@@ -6,16 +6,16 @@ const api = axios.create({
 });
 
 // Interceptor para incluir token
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token');
-  if (!token) {
-    window.location.href = '/login'; // Redireciona para login se não houver token 
-  }
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// api.interceptors.request.use((config) => {
+//   const token = localStorage.getItem('auth_token');
+//   if (!token) {
+//     window.location.href = '/login'; // Redireciona para login se não houver token 
+//   }
+//   if (token) {
+//     config.headers.Authorization = `Bearer ${token}`;
+//   }
+//   return config;
+// });
 
 api.interceptors.response.use((response) => {
   if (response.status === 401) {

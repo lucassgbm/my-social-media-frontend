@@ -38,11 +38,11 @@ export default function Home() {
         try {
             const response = await auth(login.email, login.password);
 
-            localStorage.setItem('auth_token', response.token);
+            // localStorage.setItem('auth_token', response.token);
             setLoading(false);
             setToaster({ ...toaster, show: true, message: ' Login realizado com sucesso! Redirecionando...', status: 'success' });
 
-            router.push('/social-media/');
+            router.push('/social-media');
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {

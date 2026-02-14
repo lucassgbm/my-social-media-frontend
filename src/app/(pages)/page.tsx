@@ -9,13 +9,13 @@ export default function Home(){
 }, []);
 
 const getData = async () => {
-  const storage = localStorage.getItem('auth_token');
-  if (!storage) {
-    router.push("/login");
-    return;
-  }
+  // const storage = localStorage.getItem('auth_token');
+  // if (!storage) {
+  //   router.push("/login");
+  //   return;
+  // }
 
- router.push("/social-media");
+//  router.push("/social-media");
 }
 
     return(
