@@ -28,6 +28,7 @@ import HeartIcon from '../../../../../../components/icons/heart';
 import '@splidejs/react-splide/css';
 import PinIcon from '../../../../../../components/icons/pin';
 import UsersIcon from '../../../../../../components/icons/users';
+import CommunityIcon from '../../../../../../components/icons/community';
 
 interface UserPhoto {
     id: number;
@@ -90,26 +91,53 @@ export default function Home(){
         {
             id: 1,
             name: "João",
+            title: "Estudante",
             photo_path: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80",
             location: "Rio de Janeiro - RJ"
         },
         {
             id: 2,
             name: "Maria",
-            photo_path: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80",
+            title: "Maquiadora",
+            photo_path: "https://images.unsplash.com/photo-1769097137026-c482044ca0fb?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDE5fHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
             location: "São Paulo - SP"
         },
         {
             id: 3,
             name: "Pedro",
-            photo_path: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80",
+            title: "Desenvolvedor Full Stack",
+            photo_path: "https://images.unsplash.com/photo-1770191954591-952ab5c63e68?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDkyfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
             location: "Curitiba - PR"
         },
         {
             id: 4,
             name: "Ana",
-            photo_path: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80",
+            title: "Dentista",
+            photo_path: "https://images.unsplash.com/photo-1770576568718-6747e3d85de8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDMzfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
             location: "Belo Horizonte - MG"
+        },
+    ]
+
+    const sugestedCommunities = [
+        {
+            id: 1,
+            name: "Comunity 1",
+            photo_path: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y2Fycm9zfGVufDB8fDB8fHww",
+            location: "Rio de Janeiro - RJ",
+            description: "Descricão da comunidade"
+        },
+        {
+            id: 2,
+            name: "Comunity 2",
+            photo_path: "https://media.istockphoto.com/id/2214123161/pt/foto/happy-family-preparing-for-a-summer-vacation-on-a-beachside-road.webp?a=1&b=1&s=612x612&w=0&k=20&c=h3fPxOURGHgHdueoaC4b6q34iLPySTvfL4UQeFOlkV4=",
+            location: "São Paulo - SP",
+            description: "Descricão da comunidade"
+        },{
+            id: 3,
+            name: "Comunity 3",
+            photo_path: "https://images.unsplash.com/photo-1567818668259-e66acac21610?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8ODJ8fGNhcnJvc3xlbnwwfHwwfHx8MA%3D%3D",
+            location: "Brasília - DF",
+            description: "Descricão da comunidade"
         },
     ]
 
@@ -194,9 +222,9 @@ export default function Home(){
         <>
 
             <div className="col-span-full sm:col-span-7 gap-4">
-                <Container className="h-full " padding="p-0">
+                <Container className="rounded-2xl" padding="p-0">
                     
-                    <div className="relative w-full p-4 border-b border-neutral-200 dark:border-neutral-800">
+                    <div className="relative w-full p-4 ">
                         <Image 
                             src="/imgs/cover-profile.jpg"
                             alt="Capa do perfil"
@@ -275,8 +303,10 @@ export default function Home(){
                             </div>
                         </div>
                         
-                    </div>
-
+                    </div>        
+                            
+                </Container>
+                <Container className="rounded-2xl mt-6">
                     <div className='w-full flex flex-row p-4'>
                         <div className="flex rounded-2xl  justify-center items-center hover:opacity-90" >
                             <button onClick={() => setModalNewPhoto(true)} className="flex flex-row gap-2 rounded-full border-1 border-neutral-800 items-center justify-center p-4 cursor-pointer">
@@ -284,7 +314,7 @@ export default function Home(){
                             </button>
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-4 border-b border-neutral-200 dark:border-neutral-800">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-4">
                         
                         {userPhotos?.length !== 0 && userPhotos?.map((photo) => (
                             <div key={photo.id}>
@@ -308,6 +338,8 @@ export default function Home(){
                         )}
                     
                     </div> 
+                </Container>
+                <Container className="rounded-2xl" padding="p-4 mt-6">
                     <div className="p-4">
                         <h1 className="text-2xl font-semibold mb-4">Posts</h1>
                     </div>
@@ -385,42 +417,74 @@ export default function Home(){
                                 )
                             })}
                         </Splide>
-                        </div>
-                            
-                            
-                    </Container>
+                    </div>
+                </Container>
             </div>
             <div className="col-span-full sm:col-span-3 gap-4">
-                <Container className="h-full " padding="p-0">
+                <Container className="rounded-2xl" padding="p-0">
                     <div className="flex flex-col p-4">
                         <h1 className="text-lg font-semibold mb-4">Siga outras pessoas</h1>
                         {sugestedUsers && sugestedUsers.map((user) => (
                             
-                            <div className="w-full  flex flex-row gap-2 px-4 py-8 justify-between items-center" key={user.id}>
+                            <div className="relative w-full flex flex-row gap-2 px-4 py-8 mb-4 justify-between items-center border-1 border-neutral-200 dark:border-neutral-800 rounded-2xl" key={user.id}>
                                 <div className="flex flex-row items-center">
 
                                     <Image
                                         src={user?.photo_path ?? '/imgs/placeholder.png'}
                                         alt="Foto de perfil"                            
-                                        className="w-[60px] w-[60px] rounded-full aspect-[1/1]"
+                                        className="w-[60px] w-[60px] rounded-full aspect-[1/1] object-cover"
                                         width={50}
                                         height={50}
                                         unoptimized
                                     />
                                     <div className="flex flex-col ml-2">
                                         <span className="text-sm font-semibold">{user?.name}</span>
+                                        <p className="text-xs font-normal text-gray-300">{user?.title}</p>
                                         <p className="text-xs font-normal text-gray-400">{user?.location}</p>
+
                                     </div>
                                 </div>
-                                <Button onClick={() => setModalNewPhoto(true)} className="text-sm text-semibold">
+                                <Button onClick={() => setModalNewPhoto(true)} className="absolute right-2 bottom-2 text-sm text-semibold">
                                     <div className="flex flex-row items-center">
-                                        <UsersIcon className="size-4" /><span>+</span>
+                                        <span>+</span>
+                                        <UsersIcon className="size-3" />
                                     </div>
                                 </Button>
                             </div>
                         ))}
 
                     </div>
+                </Container>
+                <Container className="rounded-2xl" padding="mt-6 p-4">
+                    <h1 className="text-lg font-semibold mb-4">Comunidades sugeridas</h1>
+                    {sugestedCommunities && sugestedCommunities.map((community) => (
+                            
+                        <div className="relative w-full flex flex-row gap-2 px-4 py-4 mb-4 justify-between items-center border-1 border-neutral-200 dark:border-neutral-800 rounded-2xl" key={community.id}>
+                            <div className="flex flex-row items-center">
+
+                                <Image
+                                    src={community?.photo_path ?? '/imgs/placeholder.png'}
+                                    alt="Foto da comunidade"                            
+                                    className="w-[100px] w-[100px] rounded-full aspect-[1/1] object cover"
+                                    width={70}
+                                    height={70}
+                                    unoptimized
+                                />
+                                <div className="flex flex-col ml-2">
+                                    <span className="text-sm font-semibold">{community?.name}</span>
+                                    <p className="text-xs font-normal text-gray-300">{community?.description}</p>
+                                    <p className="text-xs font-normal text-gray-400">{community?.location}</p>
+
+                                </div>
+                            </div>
+                            <Button onClick={() => setModalNewPhoto(true)} className="absolute right-2 bottom-2 text-sm text-semibold">
+                                <div className="flex flex-row items-center">
+                                    <span>+</span>
+                                    <CommunityIcon className="size-3" />
+                                </div>
+                            </Button>
+                        </div>
+                    ))}
                 </Container>
             </div>
             <Modal isOpen={modalNewPhoto} onClose={() => setModalNewPhoto(false)} title="Nova Foto">

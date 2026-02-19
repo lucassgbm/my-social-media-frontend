@@ -1,7 +1,7 @@
 'use client';
 
 import type { Metadata } from "next";
-import {  Inter, Poppins } from "next/font/google";
+import {  Inter, Montserrat, Poppins } from "next/font/google";
 import "./globals.css";
 import { Providers } from "../../providers/providers";
 
@@ -15,6 +15,11 @@ const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "600", "700"], // optional: add more weights if needed
 });
+
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+})
 
 // export const metadata: Metadata = {
 //   title: "My social media",

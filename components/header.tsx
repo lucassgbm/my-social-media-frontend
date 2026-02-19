@@ -17,6 +17,7 @@ import PhotoIcon from "./icons/photo";
 import UsersIcon from "./icons/users";
 import SettingsIcon from "./icons/settings";
 import ArrowRightIcon from "./icons/arrow-right";
+import Link from "next/link";
 
 export default function Header() {
 
@@ -37,13 +38,32 @@ export default function Header() {
 
     return (
         <header className="flex w-full bg-white dark:bg-neutral-900 justify-center">
-            <nav className="w-full max-w-7xl shadow-md px-6 py-2 flex items-center justify-between">
+            <nav className="w-full max-w-7xl px-6 py-2 flex items-center justify-between">
 
-                <div className="w-1/4 text-xl font-bold dark:text-white text-neutral-800">Logo</div>
+                <div className="w-1/4 text-xl font-bold dark:text-white text-neutral-800">
+                    <Link href="/social-media">
+
+                        <Image 
+                            src="/imgs/logo_social_media.png" 
+                            alt="Logo" 
+                            width={100} 
+                            height={100} 
+                            className="w-[90px] h-auto hidden dark:block"
+                        />
+
+                        <Image 
+                            src="/imgs/logo_social_media_blank.png" 
+                            alt="Logo" 
+                            width={100} 
+                            height={100} 
+                            className="w-[90px] h-auto block dark:hidden"
+                        />
+                    </Link>
+                </div>
 
                 <div className="w-2/4 hidden md:flex bg-neutral-100 dark:bg-neutral-800 p-2 rounded-lg px-5 pl-5">
                     <SearchIcon className="dark:text-white" />
-                    <input className="ml-2 w-full focus:outline-none w-full text-gray-600 dark:text-white rounded-sm ml-2 pr-4" type="text" placeholder="Search"></input>
+                    <input className="ml-2 w-full focus:outline-none w-full text-gray-600 text-sm dark:text-white rounded-sm ml-2 pr-4" type="text" placeholder="Search"></input>
                 </div>
 
                 <div className="hidden md:flex w-1/4 justify-end items-center gap-4">

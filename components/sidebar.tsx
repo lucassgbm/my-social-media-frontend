@@ -30,7 +30,7 @@ export default function Sidebar() {
     return (
         <>
             
-            <div className="sticky top-0 h-screen hidden sm:grid sm:col-span-2 gap-4">
+            <div className="sticky top-0 h-[600px] hidden sm:grid sm:col-span-2 gap-4">
                 <Container className="flex flex-col rounded-md" padding="p-4">
                     <div className="flex flex-col justify-center">
                         {myInfo && (
@@ -90,23 +90,21 @@ export default function Sidebar() {
                                 </div>
                             </>
                         )}
+
+                        <Card className="flex flex-col rounded-2xl gap-2 p-4 mt-4">
+                            <div className="w-full flex flex-row justify-between">
+                                <label className="text-xs text-gray-400">Amigos</label>
+                                <label className="text-xs">213</label>
+                            </div>
+                            <div className="w-full flex flex-row justify-between">
+                                <label className="text-xs text-gray-400">Comunidades</label>
+                                <label className="text-xs">16</label>
+                            </div>
+
+                        </Card>
                     </div>
                 </Container>
-                <Container className="rounded-md">
 
-                    <Card className="flex flex-col rounded-2xl gap-2 p-4">
-                        <div className="w-full flex flex-row justify-between">
-                            <label className="text-xs text-gray-400">Amigos</label>
-                            <label className="text-xs">213</label>
-                        </div>
-                        <div className="w-full flex flex-row justify-between">
-                            <label className="text-xs text-gray-400">Comunidades</label>
-                            <label className="text-xs">16</label>
-                        </div>
-                        
-
-                    </Card>
-                </Container>
                 <Container className="rounded-md" padding="p-4">
 
                     <nav className="w-full flex flex-col gap-2 overflow-y-auto">
