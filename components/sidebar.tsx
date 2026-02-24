@@ -16,6 +16,7 @@ import { AppContext } from "@/app/(pages)/social-media/layout";
 import Card from "./card";
 import RingImage from "./ring-image";
 import PinIcon from "./icons/pin";
+import BookMarkIcon from "./icons/book-mark";
 
 
 
@@ -111,7 +112,7 @@ export default function Sidebar() {
                         <ul className="list-none">
 
                             <Link href="/social-media">
-                                <li className="flex w-full items-center gap-2 p-2 rounded-md hover:bg-white dark:hover:bg-neutral-800 hover:text-green-400 cursor-pointer transition">
+                                <li className="flex w-full items-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
                                     
                                     <Button>
                                         <HomeIcon className="size-4 dark:text-white text-neutral-800"/>
@@ -122,7 +123,7 @@ export default function Sidebar() {
                             </Link>
                             
                             <Link href="/social-media/friends">
-                                <li className="flex w-full items-center gap-2 p-2 rounded-md hover:bg-white dark:hover:bg-neutral-800 hover:text-green-400 cursor-pointer transition">
+                                <li className="flex w-full items-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
                                     <Button>
                                         <UsersIcon className="size-4 dark:text-white text-neutral-800"/>
                                     </Button>
@@ -131,7 +132,7 @@ export default function Sidebar() {
                                 </li>
                             </Link>
                             <Link href="/social-media/communities">
-                                <li className="flex w-full items-center gap-2 p-2 rounded-md hover:bg-white dark:hover:bg-neutral-800 hover:text-green-400 cursor-pointer transition">
+                                <li className="flex w-full items-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
                                     <Button>
                                         <CommunityIcon className="size-4 dark:text-white text-neutral-800"/>
                                     </Button>
@@ -141,7 +142,7 @@ export default function Sidebar() {
                                 </li>
                             </Link>
                             <Link href="/social-media/events">
-                                <li className="flex w-full items-center gap-2 p-2 rounded-md hover:bg-white dark:hover:bg-neutral-800 hover:text-green-400 cursor-pointer transition">
+                                <li className="flex w-full items-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
                                     <Button>
                                         <TrophyIcon className="size-4 dark:text-white text-neutral-800"/>
                                     </Button>
@@ -150,8 +151,9 @@ export default function Sidebar() {
 
                                 </li>
                             </Link>
+                            
                             <Link href="/social-media/messages">
-                                <li className="flex w-full p-2 items-center rounded-md hover:bg-white dark:hover:bg-neutral-800 hover:text-green-400 cursor-pointer transition justify-between">
+                                <li className="flex w-full py-1 items-center rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition justify-between">
                                     <div className="flex flex-row gap-2 items-center">
                                         <Button>
                                             <MessageIcon className="size-4 dark:text-white text-neutral-800"/>
@@ -165,8 +167,27 @@ export default function Sidebar() {
                                     
                                 </li>
                             </Link>
+                             
+                        </ul>
+                    </nav>
+                </Container>
+                <Container className="rounded-md" padding="p-4">
+
+                    <nav className="w-full flex flex-col gap-2 overflow-y-auto">
+                         <ul className="list-none">
+                         
+                            <Link href="/social-media/items-saved">
+                                <li className="flex w-full items-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
+                                    <Button>
+                                        <BookMarkIcon className="size-4 dark:text-white text-neutral-800"/>
+                                    </Button>
+                                
+                                    <label className="hidden md:flex text-xs ">Itens Salvos</label>
+
+                                </li>
+                            </Link>
                             <Link href="/social-media/settings">
-                                <li className="flex w-full items-center gap-2 p-2 rounded-md hover:bg-white dark:hover:bg-neutral-800 hover:text-green-400 cursor-pointer transition">
+                                <li className="flex w-full items-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
 
                                     <Button>
                                         <SettingsIcon className="size-4 dark:text-white text-neutral-800"/>
@@ -174,7 +195,7 @@ export default function Sidebar() {
                                     
                                     <label className="hidden md:flex text-xs ">Preferências</label>
                                 </li>
-                            </Link>  
+                            </Link> 
                         </ul>
                     </nav>
                 </Container>
