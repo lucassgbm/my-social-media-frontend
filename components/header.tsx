@@ -40,7 +40,7 @@ export default function Header() {
         <header className="flex w-full bg-white dark:bg-neutral-900 justify-center">
             <nav className="w-full max-w-7xl px-6 py-2 flex items-center justify-between">
 
-                <div className="w-1/4 text-xl font-bold dark:text-white text-neutral-800">
+                <div className="w-1/3 text-xl font-bold dark:text-white text-neutral-800">
                     <Link href="/social-media">
 
                         <Image 
@@ -61,12 +61,12 @@ export default function Header() {
                     </Link>
                 </div>
 
-                <div className="w-2/4 hidden md:flex bg-neutral-100 dark:bg-neutral-800 p-2 rounded-lg px-5 pl-5">
+                <div className="w-1/3 hidden md:flex bg-neutral-100 dark:bg-neutral-800 p-2 rounded-full border border-neutral-200 dark:border-neutral-700 px-5 pl-5">
                     <SearchIcon className="dark:text-white" />
-                    <input className="ml-2 w-full focus:outline-none w-full text-gray-600 text-sm dark:text-white rounded-sm ml-2 pr-4" type="text" placeholder="Search"></input>
+                    <input className="ml-2 w-full focus:outline-none w-full text-gray-600 text-sm dark:text-white rounded-sm ml-2 pr-4" type="text" placeholder="Buscar.."></input>
                 </div>
 
-                <div className="hidden md:flex w-1/4 justify-end items-center gap-4">
+                <div className="hidden md:flex w-1/3 justify-end items-center gap-4">
                     <div className="flex flex-row gap-2">
                         <Button
                             onClick={() => { setOpenMessages(!openMessages) }}
@@ -78,7 +78,7 @@ export default function Header() {
 
                     {myInfo && (
                         <div className="flex flex-row items-center gap-2">
-                            <span className="text-sm font-semibold text-gray-600 dark:text-white">{`Olá, ${myInfo?.name}`}</span>
+                            {/* <span className="text-sm font-semibold text-gray-600 dark:text-white">{`Olá, ${myInfo?.name}`}</span> */}
                             <ul>
                                 <li className="cursor-pointer" onClick={() => setOpen(!open)}>
 
@@ -110,7 +110,7 @@ export default function Header() {
 
                     {!myInfo && (
                         <div className="flex flex-row items-center gap-2">
-                            <Skeleton rounded="sm" height={"h-[25px]"} width={"w-[120px]"} />
+                            {/* <Skeleton rounded="sm" height={"h-[25px]"} width={"w-[120px]"} /> */}
                             <Skeleton height={"h-[55px]"} width={"w-[55px]"} rounded="full" className="aspect-[1/1]" />
                         </div>
 
@@ -126,9 +126,9 @@ export default function Header() {
 
                 {mobileOpen && (
                     <div className="absolute top-14 left-0 w-full dark:bg-neutral-900 bg-white shadow-md flex flex-col p-4 gap-4 md:hidden z-100">
-                        <div className="flex w-full bg-neutral-100 dark:bg-neutral-700 p-2 rounded-2xl px-5 pl-5">
+                        <div className="flex w-full bg-neutral-100 dark:bg-neutral-700 p-2 rounded-full border border-neutral-600 px-5 pl-5">
                             <SearchIcon className="dark:text-white" />
-                            <input className="ml-2 w-full focus:outline-none w-full text-gray-600 dark:text-white rounded-sm ml-2 pr-4" type="text" placeholder="Search"></input>
+                            <input className="ml-2 w-full focus:outline-none w-full text-gray-600 dark:text-white rounded-sm ml-2 pr-4" type="text" placeholder="Buscar.."></input>
                         </div>
                         <div className="flex flex-col w-full">
 
