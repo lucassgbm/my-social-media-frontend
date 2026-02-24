@@ -29,6 +29,7 @@ import '@splidejs/react-splide/css';
 import PinIcon from '../../../../../../components/icons/pin';
 import UsersIcon from '../../../../../../components/icons/users';
 import CommunityIcon from '../../../../../../components/icons/community';
+import BorderButton from '../../../../../../components/border-button';
 
 interface UserPhoto {
     id: number;
@@ -87,7 +88,7 @@ export default function Home(){
     
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const sugestedUsers = [
+    const sugestedFriends = [
         {
             id: 1,
             name: "João",
@@ -115,6 +116,58 @@ export default function Home(){
             title: "Dentista",
             photo_path: "https://images.unsplash.com/photo-1770576568718-6747e3d85de8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDMzfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
             location: "Belo Horizonte - MG"
+        },
+    ]
+
+    const myFriends = [
+        {
+            id: 1,
+            name: "João",
+            title: "Estudante",
+            photo_path: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80",
+            location: "Rio de Janeiro - RJ"
+        },
+        {
+            id: 2,
+            name: "Maria",
+            title: "Maquiadora",
+            photo_path: "https://images.unsplash.com/photo-1769097137026-c482044ca0fb?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDE5fHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
+            location: "São Paulo - SP"
+        },
+        {
+            id: 3,
+            name: "Pedro",
+            title: "Desenvolvedor Full Stack",
+            photo_path: "https://images.unsplash.com/photo-1770191954591-952ab5c63e68?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDkyfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
+            location: "Curitiba - PR"
+        },
+        {
+            id: 4,
+            name: "Ana",
+            title: "Dentista",
+            photo_path: "https://images.unsplash.com/photo-1770576568718-6747e3d85de8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDMzfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
+            location: "Belo Horizonte - MG"
+        },
+        {
+            id: 5,
+            name: "Pedro",
+            title: "Empresário",
+            photo_path: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80",
+            location: "Rio de Janeiro - RJ"
+        },
+        {
+            id: 6,
+            name: "Maria",
+            title: "Dentista",
+            photo_path: "https://images.unsplash.com/photo-1770576568718-6747e3d85de8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDMzfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
+            location: "Belo Horizonte - MG"
+        },
+        {
+            id: 7,
+            name: "Maria",
+            title: "Advogada",
+            photo_path: "https://images.unsplash.com/photo-1769097137026-c482044ca0fb?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDE5fHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
+            location: "São Paulo - SP"
         },
     ]
 
@@ -230,7 +283,7 @@ export default function Home(){
                             alt="Capa do perfil"
                             width={500}
                             height={500}
-                            className="absolute inset-0 w-full h-[200px] object-cover z-40"
+                            className="absolute inset-0 w-full h-[200px] object-cover z-40 rounded-t-2xl"
                             unoptimized 
                         />
                         <div className="flex flex-row justify-end items-start h-[80px]">
@@ -306,13 +359,67 @@ export default function Home(){
                     </div>        
                             
                 </Container>
-                <Container className="rounded-2xl mt-6">
-                    <div className='w-full flex flex-row p-4'>
-                        <div className="flex rounded-2xl  justify-center items-center hover:opacity-90" >
-                            <button onClick={() => setModalNewPhoto(true)} className="flex flex-row gap-2 rounded-full border-1 border-neutral-800 items-center justify-center p-4 cursor-pointer">
-                                <PlusIcon className="size-6"/>
+                <Container className="rounded-2xl mt-4" padding="p-0">
+                    <div className="flex flex-col p-4">
+                        <div className="w-full flex flex-row mb-6 gap-2">
+                            <button className="bg-black/30 text-sm py-2 px-2 pl-6 pr-6 rounded-lg cursor-pointer">
+                                <UsersIcon className="size-6"/>
+                            </button>
+                            <button className="bg-black/30 text-sm py-2 px-2 pl-6 pr-6 rounded-lg cursor-pointer">
+                                <PhotoIcon className="size-6"/>
+                            </button>
+                            <button className="bg-black/30 text-sm py-2 px-2 pl-6 pr-6 rounded-lg cursor-pointer">
+                                <CommunityIcon className="size-6"/>
                             </button>
                         </div>
+                        <h1 className="text-lg font-semibold mb-4">Amigos</h1>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+
+                            {myFriends && myFriends.map((friend) => (
+                                
+                                    <div className="relative w-full flex flex-row gap-2 mb-2 overflow-hidden group justify-between items-center border-1 border-neutral-200 dark:border-neutral-800 rounded-2xl" key={friend.id}>
+                                        <div className="flex flex-col items-center">
+
+                                            <Image
+                                                src={friend?.photo_path ?? '/imgs/placeholder.png'}
+                                                alt="Foto de perfil"                            
+                                                className="w-full h-[155px] rounded-xl aspect-[1/1] object-cover group-hover:scale-110 transition-all duration-300 ease-in-out"
+                                                width={50}
+                                                height={50}
+                                                unoptimized
+                                            />
+                                            <Link href={`/social-media/profile/${friend?.name}`} key={friend.id} className="absolute w-full h-auto bottom-0 left-0 flex flex-col bg-linear-to-t from-black via-black/70 to-transparent rounded-b-xl p-4">
+
+                                                <span className="text-sm font-semibold">{friend?.name}</span>
+                                                <p className="w-full flex text-xs font-normal text-gray-300 text-wrap">{friend?.title}</p>
+                                                <p className="text-xs font-normal text-gray-400">{friend?.location}</p>
+
+                                            </Link>
+                                        </div>
+                                        <Button onClick={() => setModalNewPhoto(true)} className="absolute right-2 top-2 text-sm text-semibold">
+                                            <EllipsisVerticalIcon className="size-3"/>
+                                        </Button>
+                                    </div>
+                            ))}
+                        </div>
+                        <div className="w-full flex flex-row justify-center">
+
+                            <Link href="/social-media/friends" className="mt-4">
+                                <small className="text-xs text-gray-400 ">Ver mais</small>
+                            </Link>
+                        </div>
+
+                    </div>
+                </Container>
+
+                <Container className="rounded-2xl mt-4">
+                    <div className="w-full flex flex-row justify-end p-4">
+                        
+                        <BorderButton onClick={() => setModalNewPhoto(true)}>
+                            Adicionar foto
+                        </BorderButton>
+                    
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-4">
                         
@@ -328,6 +435,7 @@ export default function Home(){
                                 />
                             </div>
                         ))}
+
                         {userPhotos?.length === 0 && (
                             <>
                                 <Skeleton className="w-full aspect-[1/1] object-cover" rounded="2xl" />
@@ -424,34 +532,41 @@ export default function Home(){
                 <Container className="rounded-2xl" padding="p-0">
                     <div className="flex flex-col p-4">
                         <h1 className="text-lg font-semibold mb-4">Siga outras pessoas</h1>
-                        {sugestedUsers && sugestedUsers.map((user) => (
-                            
-                            <div className="relative w-full flex flex-row gap-2 px-4 py-8 mb-4 justify-between items-center border-1 border-neutral-200 dark:border-neutral-800 rounded-2xl" key={user.id}>
-                                <div className="flex flex-row items-center">
 
-                                    <Image
-                                        src={user?.photo_path ?? '/imgs/placeholder.png'}
-                                        alt="Foto de perfil"                            
-                                        className="w-[60px] w-[60px] rounded-full aspect-[1/1] object-cover"
-                                        width={50}
-                                        height={50}
-                                        unoptimized
-                                    />
-                                    <div className="flex flex-col ml-2">
-                                        <span className="text-sm font-semibold">{user?.name}</span>
-                                        <p className="text-xs font-normal text-gray-300">{user?.title}</p>
-                                        <p className="text-xs font-normal text-gray-400">{user?.location}</p>
+                        <div className="grid grid-cols-2 gap-2">
 
+                            {sugestedFriends && sugestedFriends.map((friend) => (
+                                
+                                <Link href={`/social-media/profile/${friend?.name}`} key={friend.id}>
+
+                                    <div className="relative overflow-hidden w-full flex flex-row gap-2 mb-2 group justify-between items-center group border-1 border-neutral-200 dark:border-neutral-800 rounded-2xl" key={friend.id}>
+                                        <div className="flex flex-col items-center">
+
+                                            <Image
+                                                src={friend?.photo_path ?? '/imgs/placeholder.png'}
+                                                alt="Foto de perfil"                            
+                                                className="w-full h-[155px] rounded-xl aspect-[1/1] object-cover group-hover:scale-110 transition-all duration-300 ease-in-out"
+                                                width={50}
+                                                height={50}
+                                                unoptimized
+                                            />
+                                            <div className="absolute w-full h-auto bottom-0 left-0 flex flex-col bg-linear-to-t from-black via-black/70 to-transparent rounded-b-xl p-4">
+                                                <span className="text-sm font-semibold">{friend?.name}</span>
+                                                <p className="w-full flex text-xs font-normal text-gray-300 text-wrap">{friend?.title}</p>
+                                                <p className="text-xs font-normal text-gray-400">{friend?.location}</p>
+
+                                            </div>
+                                        </div>
+                                        <Button onClick={() => setModalNewPhoto(true)} className="absolute right-2 top-2 text-sm text-semibold">
+                                            <div className="flex flex-row items-center">
+                                                <span>+</span>
+                                                <UsersIcon className="size-3" />
+                                            </div>
+                                        </Button>
                                     </div>
-                                </div>
-                                <Button onClick={() => setModalNewPhoto(true)} className="absolute right-2 bottom-2 text-sm text-semibold">
-                                    <div className="flex flex-row items-center">
-                                        <span>+</span>
-                                        <UsersIcon className="size-3" />
-                                    </div>
-                                </Button>
-                            </div>
-                        ))}
+                                </Link>
+                            ))}
+                        </div>
 
                     </div>
                 </Container>
@@ -459,31 +574,30 @@ export default function Home(){
                     <h1 className="text-lg font-semibold mb-4">Comunidades sugeridas</h1>
                     {sugestedCommunities && sugestedCommunities.map((community) => (
                             
-                        <div className="relative w-full flex flex-row gap-2 px-4 py-4 mb-4 justify-between items-center border-1 border-neutral-200 dark:border-neutral-800 rounded-2xl" key={community.id}>
-                            <div className="flex flex-row items-center">
+                        <Link href={`/social-media/profile/${community?.name}`} key={community.id}>
+                            <div className="relative w-full flex flex-row gap-2 mb-2 overflow-hidden group justify-between items-center border-1 border-neutral-200 dark:border-neutral-800 rounded-2xl">
+                                <div className="flex flex-col items-center">
 
-                                <Image
-                                    src={community?.photo_path ?? '/imgs/placeholder.png'}
-                                    alt="Foto da comunidade"                            
-                                    className="w-[100px] w-[100px] rounded-full aspect-[1/1] object cover"
-                                    width={70}
-                                    height={70}
-                                    unoptimized
-                                />
-                                <div className="flex flex-col ml-2">
-                                    <span className="text-sm font-semibold">{community?.name}</span>
-                                    <p className="text-xs font-normal text-gray-300">{community?.description}</p>
-                                    <p className="text-xs font-normal text-gray-400">{community?.location}</p>
+                                    <Image
+                                        src={community?.photo_path ?? '/imgs/placeholder.png'}
+                                        alt="Foto de perfil"                            
+                                        className="w-full rounded-xl object-cover group-hover:scale-110 transition-all duration-300 ease-in-out"
+                                        width={50}
+                                        height={50}
+                                        unoptimized
+                                    />
+                                    <div className="absolute w-full h-auto bottom-0 left-0 flex flex-col bg-linear-to-t from-black via-black/70 to-transparent rounded-b-xl p-4">
+                                        <span className="text-sm font-semibold">{community?.name}</span>
+                                        <p className="w-full flex text-xs font-normal text-gray-300 text-wrap">{community?.description}</p>
+                                        <p className="text-xs font-normal text-gray-400">{community?.location}</p>
 
+                                    </div>
                                 </div>
+                                <Button onClick={() => setModalNewPhoto(true)} className="absolute right-2 top-2 text-sm text-semibold">
+                                    <EllipsisVerticalIcon className="size-3"/>
+                                </Button>
                             </div>
-                            <Button onClick={() => setModalNewPhoto(true)} className="absolute right-2 bottom-2 text-sm text-semibold">
-                                <div className="flex flex-row items-center">
-                                    <span>+</span>
-                                    <CommunityIcon className="size-3" />
-                                </div>
-                            </Button>
-                        </div>
+                        </Link>
                     ))}
                 </Container>
             </div>
