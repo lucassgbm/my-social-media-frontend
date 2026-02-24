@@ -4,6 +4,7 @@ import Image from "next/image";
 import HeartIcon from "./icons/heart";
 import MessageIcon from "./icons/message";
 import Container from "./container";
+import AirPlaneIcon from "./icons/airplane";
 
 interface User {
   name: string;
@@ -74,16 +75,22 @@ export default function Feed({ feed }: FeedProps) {
                 />
               )}
 
-
-              <div className="w-full flex flex-row gap-4 items-center mt-4">
-                <div className="flex flex-row gap-1 items-center">
-                  <HeartIcon />
-                  <span className="text-sm font-semibold">{post.likes.count}</span>
-                </div>
-                <div className="flex flex-row gap-1 items-center">
-                  <MessageIcon />
-                  <span className="text-sm font-semibold">{post.comments.count}</span>
-                </div>
+              <div className="flex flex-row gap-2 w-full mt-4 items-center text-xs text-gray-400">
+                <HeartIcon className="size-4" />
+                  <span className="text-sm">{`${post.likes.count} users liked this`}</span>
+              </div>
+              <div className="w-full flex flex-row gap-4 items-center justify-between mt-4 text-gray-400 pt-2 border-t border-neutral-800">
+                <button className="flex w-1/3 flex-row gap-1 items-center justify-center hover:bg-black/30 cursor-pointer transition duration-300 ease-in-out py-2 rounded-md">
+                  <HeartIcon className="size-5" />
+                  
+                </button>
+                <button className="flex w-1/3 flex-row gap-1 items-center justify-center hover:bg-black/30 cursor-pointer transition duration-300 ease-in-out py-2 rounded-md">
+                  <MessageIcon className="size-5" />
+                  
+                </button>
+                <button className="flex w-1/3 flex-row gap-1 items-center justify-center hover:bg-black/30 cursor-pointer transition duration-300 ease-in-out py-2 rounded-md">
+                  <AirPlaneIcon className="size-5"/>
+                </button>
               </div>
             </Container>
           </div>
