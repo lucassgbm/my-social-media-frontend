@@ -166,7 +166,7 @@ export default function Home() {
 
     try {
       const response = await get("/social-media/community?page=1");
-      setCommunities(response.data.data);
+      setCommunities(response.data);
     } catch (error: any) {
 
       setToaster({...toaster, show: true, message: "Erro ao carregar Comunidades", status: 'error', title: "Comunidades"});
@@ -392,16 +392,13 @@ export default function Home() {
                   {communities && (
 
                     communities.map((community: Community, index: number) => {
-                      const imageCommunity = community.photo
-                      ? `${process.env.NEXT_PUBLIC_STORAGE_API?.replace(/\/$/, '')}/${community.photo?.replace(/^\//, '')}`
-                      : null;
-
+                      
                       return (
                         
                         <Card className="flex flex-col justify-center  mt-4 bg-neutral-100 dark:bg-neutral-800 rounded-xl cursor-pointer hover:shadow-md" key={index}>
                           <div className="flex flex-row items-center rounded-sm mb-2">
                             <Image
-                              src={"/imgs/placeholder.png"}
+                              src={community.photo ?? "/imgs/placeholder.png"}
                               alt="Foto de perfil"
                               className="rounded-full w-[40px] aspect-[1/1] mr-2 hover:opacity-90 object-cover"
                               width={110}
@@ -468,11 +465,12 @@ export default function Home() {
         
         <div className="flex flex-row gap-2 items-center">
           <Image
-            src={'/imgs/placeholder.png'}
+            src={ myInfo?.photo ?? '/imgs/placeholder.png'}
             alt="Foto de perfil"
             className="rounded-full w-[40px] aspect-[1/1]"
             width={40}
             height={40}
+            unoptimized
           />
           <div className="flex flex-col gap-1">
             <label className="text-sm">{myInfo?.name}</label>

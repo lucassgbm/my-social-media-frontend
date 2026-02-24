@@ -54,8 +54,8 @@ export default function RootLayout({
     /*openMessages, setOpenMessages*/
     <AppContext.Provider value={{ myInfo, setMyInfo, openMessages, setOpenMessages }}>
       <Header />
-        <div className="dark:bg-neutral-950 bg-neutral-100">
-          <div className="grid grid-cols-10 sm:flex-row min-h-screen p-6 gap-6 text-gray-600 max-w-7xl mx-auto">
+        <div className="dark:bg-neutral-950 h-full min-h-[100vh] bg-neutral-100">
+          <div className="grid grid-cols-10 sm:flex-row h-full p-6 gap-6 text-gray-600 max-w-7xl mx-auto">
             
             {children}
             {openMessages && (
