@@ -9,6 +9,11 @@ import CommunityIcon from "../../../../../../components/icons/community";
 import PinIcon from "../../../../../../components/icons/pin";
 import EllipsisVerticalIcon from "../../../../../../components/icons/ellipsis";
 import RingImage from "../../../../../../components/ring-image";
+import CardUser from "../../../../../../components/users/card-user";
+import Link from "next/link";
+import UsersIcon from "../../../../../../components/icons/users";
+import MessageIcon from "../../../../../../components/icons/message";
+import SettingsIcon from "../../../../../../components/icons/settings";
 
 export default function Home(){
     
@@ -47,29 +52,51 @@ export default function Home(){
     const members = [
         {
             id: 1,
-            name: "Nome do membro 1",
-            image: "/imgs/drift.jpg"
+            name: "João",
+            title: "Estudante",
+            photo_path: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80"
         },
         {
             id: 2,
-            name: "Nome do membro 2",
-            image: "/imgs/drift.jpg"
+            name: "Maria",
+            title: "Maquiadora",
+            photo_path: "https://images.unsplash.com/photo-1769097137026-c482044ca0fb?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDE5fHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D"
         },
         {
             id: 3,
-            name: "Nome do membro 3",
-            image: "/imgs/drift.jpg"
+            name: "Pedro",
+            title: "Desenvolvedor Full Stack",
+            photo_path: "https://images.unsplash.com/photo-1770191954591-952ab5c63e68?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDkyfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D"
         },
         {
             id: 4,
-            name: "Nome do membro 4",
-            image: "/imgs/drift.jpg"
-        }
+            name: "Ana",
+            title: "Dentista",
+            photo_path: "https://images.unsplash.com/photo-1770576568718-6747e3d85de8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDMzfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D"
+        },
+        {
+            id: 5,
+            name: "Pedro",
+            title: "Empresário",
+            photo_path: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80"
+        },
+        {
+            id: 6,
+            name: "Maria",
+            title: "Dentista",
+            photo_path: "https://images.unsplash.com/photo-1770576568718-6747e3d85de8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDMzfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D"
+        },
+        {
+            id: 7,
+            name: "Maria",
+            title: "Advogada",
+            photo_path: "https://images.unsplash.com/photo-1769097137026-c482044ca0fb?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDE5fHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D"
+        },
     ]
     
     return(
         <>
-            <div className="sticky top-0 h-[600px] hidden sm:grid sm:col-span-1 gap-4">
+            <div className="sticky top-0 h-[100vh] hidden sm:grid sm:col-span-1 gap-4">
 
                 <Container className="w-full justify-center rounded-lg">
                     <Image
@@ -80,23 +107,58 @@ export default function Home(){
                         unoptimized
                         className="w-full aspect-[1/1] object-cover rounded-lg"
                     />
-                    <div className="flex bg-neutral-700/80 rounded-full aspect-[1/1] my-2 text-4xl font-semibold items-center justify-center">{community.name.charAt(0).toUpperCase()}</div>
+                    <div className="w-[80%] mx-auto flex bg-neutral-700/80 rounded-full aspect-[1/1] my-2 text-4xl items-center justify-center">{community.name.charAt(0).toUpperCase()}</div>
                     <div className="flex flex-col gap-2 rounded-2xl mt-4">
-                        {members.map((member) => (
-                            <div className="flex flex-row gap-2 justify-center items-center" key={member.id}>
-                                <RingImage className="aspect-[1/1]">
+                        <nav className="w-full flex flex-col gap-2 overflow-y-auto mt-6">
+                            <ul className="list-none">
+                                
+                                <Link href="/social-media/friends">
+                                    <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
+                                        <Button>
+                                            <UsersIcon className="size-4 dark:text-white text-neutral-800"/>
+                                        </Button>
+    
+                                    </li>
+                                </Link>
+                                
+                                <Link href="/social-media/events">
+                                    <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
+                                        <Button>
+                                            <TrophyIcon className="size-4 dark:text-white text-neutral-800"/>
+                                        </Button>
+    
+                                    </li>
+                                </Link>
+                                
+                                <Link href="/social-media/messages">
+                                    <li className="flex w-full py-1 items-center justify-center rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition justify-between">
+                                        <div className="flex flex-row gap-2 items-center">
+                                            <Button className="relative">
+                                                <MessageIcon className="size-4 dark:text-white text-neutral-800"/>
+                                                <div className="absolute -bottom-1 -right-2">
+                                                    <span className="bg-[#f53003] rounded-full text-white text-xs w-5 h-5 flex items-center justify-center">3</span>
+                                                </div>
+                                            </Button>
+                                        </div>
+                                        
+                                    </li>
+                                </Link>
+                                    
+                            </ul>
+                        </nav>
+                        <nav className="w-full flex flex-col gap-2 overflow-y-auto">
+                            <ul className="list-none">
+                            
+                                <Link href="/social-media/settings">
+                                    <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
 
-                                    <Image
-                                        src={member.image ?? '/imgs/placeholder.png'}
-                                        alt="Foto do membro"
-                                        width={100}
-                                        height={100}
-                                        unoptimized
-                                        className="w-[50px] h-[50px] aspect-[1/1] object-cover rounded-full"
-                                    />
-                                </RingImage>
-                            </div>
-                        ))}
+                                        <Button>
+                                            <SettingsIcon className="size-4 dark:text-white text-neutral-800"/>
+                                        </Button>
+                                    </li>
+                                </Link> 
+                            </ul>
+                        </nav>
                     </div>
                 </Container>
             </div>
@@ -198,29 +260,40 @@ export default function Home(){
                         />
                         <div className="w-full cols-span-2 text-sm text-neutral-400 justify-center">ver mais</div>
                     </Container>
-                    <Container className="w-1/2 rounded-2xl" padding="p-0">
-                        <h1 className="text-lg font-semibold p-4">Tópicos</h1>
-                        {topics.map((topic) => (
-                            
-                            <div className="flex flex-row gap-2 p-4 text-xs justify-between items-center rounded-2xl hover:bg-neutral-950 transition duration-300 ease-in-out cursor-pointer" key={topic.id}>
-                                <div className="flex flex-row gap-2 items-center">
-                                    <Image
-                                        src={topic.image ?? '/imgs/placeholder.png'}
-                                        alt="Foto de perfil"
-                                        width={100}
-                                        height={100}
-                                        unoptimized
-                                        className="w-[30px] aspect-[1/1] object-cover rounded-full"
-                                    />
-                                    <p className="">{topic.title}</p>
-                                </div>
-                                <Button>
+                    <div className="w-1/2 flex flex-col sm:flex-row gap-4">
 
-                                    <EllipsisVerticalIcon className="size-3" />
-                                </Button>
+                        <Container className="w-full sm:w-1/2 rounded-2xl" padding="p-0">
+                            <h1 className="text-lg font-semibold p-4">Tópicos</h1>
+                            {topics.map((topic) => (
+                                
+                                <div className="flex flex-row gap-2 p-4 text-xs justify-between items-center rounded-2xl hover:bg-neutral-950 transition duration-300 ease-in-out cursor-pointer" key={topic.id}>
+                                    <div className="flex flex-row gap-2 items-center">
+                                        <Image
+                                            src={topic.image ?? '/imgs/placeholder.png'}
+                                            alt="Foto de perfil"
+                                            width={100}
+                                            height={100}
+                                            unoptimized
+                                            className="w-[30px] aspect-[1/1] object-cover rounded-full"
+                                        />
+                                        <p className="">{topic.title}</p>
+                                    </div>
+                                    <Button>
+
+                                        <EllipsisVerticalIcon className="size-3" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </Container>
+                        <Container className="w-full sm:w-1/2 rounded-2xl" padding="p-0">
+                            <h1 className="text-lg font-semibold p-4">Membros</h1>
+                            <div className="grid grid-cols-2 gap-2 p-4">
+                                {members.map((member) => (
+                                    <CardUser user={member} key={member.id} />
+                                ))}
                             </div>
-                        ))}
-                    </Container>
+                        </Container>
+                    </div>
                     
                         
                 </div>

@@ -31,8 +31,8 @@ export default function Sidebar() {
     return (
         <>
             
-            <div className="sticky top-0 h-[600px] hidden sm:grid sm:col-span-1 gap-4">
-                <Container className="flex flex-col rounded-md" padding="p-4">
+            <div className="sticky top-0 h-[100vh] hidden sm:grid sm:col-span-1 gap-4">
+                <Container className="flex flex-col rounded-md justify-between" padding="p-4">
                     <div className="flex flex-col justify-center">
                         {myInfo && (
                             <>
@@ -95,7 +95,7 @@ export default function Sidebar() {
                                 <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
                                     
                                     <Button>
-                                        <HomeIcon className="size-4 dark:text-white text-neutral-800"/>
+                                        <HomeIcon className="size-5 dark:text-white text-neutral-800"/>
                                     </Button>
 
                                 </li>
@@ -104,7 +104,7 @@ export default function Sidebar() {
                             <Link href="/social-media/friends">
                                 <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
                                     <Button>
-                                        <UsersIcon className="size-4 dark:text-white text-neutral-800"/>
+                                        <UsersIcon className="size-5 dark:text-white text-neutral-800"/>
                                     </Button>
 
                                 </li>
@@ -112,7 +112,7 @@ export default function Sidebar() {
                             <Link href="/social-media/communities">
                                 <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
                                     <Button>
-                                        <CommunityIcon className="size-4 dark:text-white text-neutral-800"/>
+                                        <CommunityIcon className="size-5 dark:text-white text-neutral-800"/>
                                     </Button>
 
                                 </li>
@@ -120,7 +120,7 @@ export default function Sidebar() {
                             <Link href="/social-media/events">
                                 <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
                                     <Button>
-                                        <TrophyIcon className="size-4 dark:text-white text-neutral-800"/>
+                                        <TrophyIcon className="size-5 dark:text-white text-neutral-800"/>
                                     </Button>
 
                                 </li>
@@ -130,7 +130,7 @@ export default function Sidebar() {
                                 <li className="flex w-full py-1 items-center justify-center rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition justify-between">
                                     <div className="flex flex-row gap-2 items-center">
                                         <Button className="relative">
-                                            <MessageIcon className="size-4 dark:text-white text-neutral-800"/>
+                                            <MessageIcon className="size-5 dark:text-white text-neutral-800"/>
                                             <div className="absolute -bottom-1 -right-2">
                                                 <span className="bg-[#f53003] rounded-full text-white text-xs w-5 h-5 flex items-center justify-center">3</span>
                                             </div>
@@ -149,7 +149,7 @@ export default function Sidebar() {
                             <Link href="/social-media/items-saved">
                                 <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
                                     <Button>
-                                        <BookMarkIcon className="size-4 dark:text-white text-neutral-800"/>
+                                        <BookMarkIcon className="size-5 dark:text-white text-neutral-800"/>
                                     </Button>
 
                                 </li>
@@ -158,7 +158,7 @@ export default function Sidebar() {
                                 <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
 
                                     <Button>
-                                        <SettingsIcon className="size-4 dark:text-white text-neutral-800"/>
+                                        <SettingsIcon className="size-5 dark:text-white text-neutral-800"/>
                                     </Button>
                                 </li>
                             </Link> 

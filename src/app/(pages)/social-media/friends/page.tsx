@@ -9,187 +9,203 @@ import { get, post } from "@/api/services/request";
 import RequestFriend from "../../../../../components/friends/request-friend";
 import { request } from "http";
 import Toaster from "../../../../../components/toaster";
+import Sidebar from "../../../../../components/sidebar";
+import Image from "next/image";
+import Link from "next/link";
+import CardUser from "../../../../../components/users/card-user";
+import Modal from "../../../../../components/modal";
+import BorderButton from "../../../../../components/border-button";
+import SearchIcon from "../../../../../components/icons/search";
+import Skeleton from "../../../../../components/skeleton";
+import CloseIcon from "../../../../../components/icons/close";
 
 export default function Home() {
 
-    const [activeTab, setActiveTab] = useState('list');
-    const [friends, setFriends] = useState([]);
+    useEffect(() => {
+        getfriends();
+    }, []);
+    const [modalNewCommunity, setModalNewCommunity] = useState(false);
+    const [loading, setLoading] = useState(false);
+    // const [friends, setfriends] = useState<any[]>([]);
     const [toaster, setToaster] = useState({
-        show: false,
-        message: "",
-        title: "",
-        status: '',
+    show: false,
+    message: "",
     });
 
-    const [requestsFriend, setRequestsFriend] = useState([]);
-
-    useEffect(() => {
-        getFriends();
-    },[])
-    
-    async function getFriends() {
-        
-        try{
-
-            const response = await get('/social-media/friends');
-
-            setFriends(response.data);
-
-        }catch(error){
-            console.log(error);
-        }
-    }
-    
-    async function getBestFriends(){
-        
-    }
-
-    async function getRequestsFriend(){
-        try{
-
-            const response = await get('/social-media/friends/requests');
-
-            setRequestsFriend(response.data);
-
-        }catch(error){
-            console.log(error);
-        }
-    }
-
-    async function acceptRequest(userId : number){ 
+    async function getfriends(){
+        setLoading(true);
         try {
-    
-            const body = {
-                user_id: userId
-            }
-            const response = await post("/social-media/friends/accept", body);
-            setToaster({...toaster, show: true, message: "Vocês agora são amigos", status: 'success', title: "Amigo"});
-            getFriends();
-            setActiveTab('list');
+            const response = await get("/social-media/community");
+            // setfriends(response.data);
         } catch (error: any) {
-            console.log(error);
+    
+            setToaster({ show: true, message: "Erro ao carregar amigos" });
         }
+        setLoading(false);
     }
 
-    return (
+    const friends = [
+        {
+            id: 1,
+            name: "João",
+            title: "Estudante",
+            photo_path: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80",
+            location: "Rio de Janeiro - RJ"
+        },
+        {
+            id: 2,
+            name: "Maria",
+            title: "Maquiadora",
+            photo_path: "https://images.unsplash.com/photo-1769097137026-c482044ca0fb?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDE5fHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
+            location: "São Paulo - SP"
+        },
+        {
+            id: 3,
+            name: "Pedro",
+            title: "Desenvolvedor Full Stack",
+            photo_path: "https://images.unsplash.com/photo-1770191954591-952ab5c63e68?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDkyfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
+            location: "Curitiba - PR"
+        },
+        {
+            id: 4,
+            name: "Ana",
+            title: "Dentista",
+            photo_path: "https://images.unsplash.com/photo-1770576568718-6747e3d85de8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDMzfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
+            location: "Belo Horizonte - MG"
+        },
+    ]
+
+    const sugestedFriends = [
+        {
+            id: 1,
+            name: "João",
+            title: "Estudante",
+            photo_path: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80",
+            location: "Rio de Janeiro - RJ"
+        },
+        {
+            id: 2,
+            name: "Maria",
+            title: "Maquiadora",
+            photo_path: "https://images.unsplash.com/photo-1769097137026-c482044ca0fb?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDE5fHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
+            location: "São Paulo - SP"
+        },
+        {
+            id: 3,
+            name: "Pedro",
+            title: "Desenvolvedor Full Stack",
+            photo_path: "https://images.unsplash.com/photo-1770191954591-952ab5c63e68?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDkyfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
+            location: "Curitiba - PR"
+        },
+        {
+            id: 4,
+            name: "Ana",
+            title: "Dentista",
+            photo_path: "https://images.unsplash.com/photo-1770576568718-6747e3d85de8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDMzfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
+            location: "Belo Horizonte - MG"
+        },
+    ]
+
+    return(
         <>
+            <Sidebar />
+            <div className="flex flex-col sm:flex-row col-span-full sm:col-span-9 gap-4">
+                <Container className="w-full sm:w-[80%] h-full rounded-2xl" padding="p-0">
 
-            <div className="col-span-full sm:col-span-8 gap-4">
-                <Container className="w-full h-full " padding="p-0">
-                    <div className="flex flex-col gap-2 border-b border-neutral-200 dark:border-neutral-800 p-4">
-                        <div>
+                    <div className="flex flex-col gap-4 mb-4 flex-wrap">
+                        <div className="flex flex-col gap-2 border-b border-neutral-200 dark:border-neutral-800 p-4">
+                            <div>
 
-                            <h1 className="text-2xl font-semibold mb-4">Amigos</h1>
+                                <h1 className="text-2xl font-semibold mb-4">Amigos</h1>
+                            </div>
+                            <div className="flex flex-col gap-2">
+
+                                <div className="w-full flex flex-row gap-2 justify-end">
+
+                                    <ColorButton
+                                        onClick={() => setModalNewCommunity(true)}
+                                    >
+                                        <SearchIcon className="size-5" />
+                                    </ColorButton>
+                                    
+                                </div>
+                                <div className="w-full flex flex-col sm:flex-row items-center gap-2 mt-2">
+
+                                    <div className="flex flex-row items-center bg-neutral-800 hover:bg-neutral-900 text-xs font-semibold py-2 px-2 pl-2 pr-2 rounded-md cursor-pointer gap-2">
+                                        Antônio
+                                        <CloseIcon className="size-3" />
+                                    </div>
+                                </div>
+                                
+                            </div>
                         </div>
-                    
-                        <div className="flex flex-row gap-2">
 
-                            <ColorButton>
-                                <PlusIcon />
-                            </ColorButton>
-                        </div>
-                    
-                    </div>
-                    
-                    <div className="fle flex-col gap-4 p-4">
+                        {loading && (
+                            <div className="w-full grid grid-cols-1 sm:grid-cols-5 gap-4 p-4">
 
-                        <div className="flex flex-row border-b border-neutral-200 dark:border-neutral-800 gap-2">
-                            <button 
-                                onClick={() => {setActiveTab("list"); getFriends()}} 
-                                className={`p-2 hover:bg-neutral-800 border-b-4 cursor-pointer font-semibold ${activeTab == "list" ? "border-neutral-800" : "border-transparent"}`}>
-                                    Todos
-                            </button>
-                            <button 
-                                onClick={() => {setActiveTab("best-friends"); getBestFriends()}} 
-                                className={`p-2 hover:bg-neutral-800 border-b-4 cursor-pointer font-semibold ${activeTab == "best-friends" ? "border-neutral-800" : "border-transparent"}`}>
-                                    Melhores amigos
-                            </button>
-                            <button 
-                                onClick={() => {setActiveTab("request-friend"); getRequestsFriend()}} 
-                                className={`p-2 hover:bg-neutral-800 border-b-4 cursor-pointer font-semibold ${activeTab == "request-friend" ? "border-neutral-800" : "border-transparent"}`}>
-                                    Pedido de amizade
-                            </button>
-                            <button 
-                                onClick={() => setActiveTab("sugest-friend")} 
-                                className={`p-2 hover:bg-neutral-800 border-b-4 cursor-pointer font-semibold ${activeTab == "sugest-friend" ? "border-neutral-800" : "border-transparent"}`}>
-                                    Sugestão
-                            </button>
-                            <button 
-                                onClick={() => setActiveTab("more")} 
-                                className={`p-2 hover:bg-neutral-800 border-b-4 cursor-pointer font-semibold ${activeTab == "more" ? "border-neutral-800" : "border-transparent"}`}>
-                                    Mais
-                            </button>
-                        </div>
-                        <div className="col-span-3 p-4 mb-4">
+                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[1/1]"/>
+                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[1/1]"/>
+                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[1/1]"/>
+                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[1/1]"/>
+                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[1/1]"/>
+                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[1/1]"/>
+                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[1/1]"/>
+                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[1/1]"/>
+                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[1/1]"/>
 
-                            {activeTab == "list" && (
-                                <>
-                                    <div className="flex flex-row mb-4">
+                            </div>
+                        )}
+                        <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 p-4">
+                            {friends && friends.map((friend) => (
+                                
+                                <CardUser 
+                                    key={friend.id}
+                                    user={friend} 
+                                />
+                                
+                            ))}
 
-                                        <h2 className="w-[200px] text-sm text-neutral-800 dark:text-white font-semibold">Todos os amigos</h2>
-                                        <div className="w-full flex justify-end">
-
-                                            <input className="text-sm text-gray-700 dark:text-white bg-white dark:bg-neutral-700 border border-neutral-200/50 dark:border-neutral-700/50 rounded-lg pl-2 py-2" type="text" placeholder="Procurar"></input>
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
-                                        {friends && (
-                                            <ListFriends friends={friends}/>
-                                        )}
-                                    </div>
-                                </>
-                            )}
-
-                            {activeTab == "request-friend" && (
-                                <>
-                                    <div className="flex flex-row mb-4">
-
-                                        <h2 className="w-[200px] text-sm text-neutral-800 dark:text-white font-semibold">Pedido de amizade</h2>
-                                        <div className="w-full flex justify-end">
-
-                                            <input className="text-sm text-gray-700 dark:text-white bg-white dark:bg-neutral-700 border border-neutral-200/50 dark:border-neutral-700/50 rounded-lg pl-2 py-2" type="text" placeholder="Procurar"></input>
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
-                                        {requestsFriend && (
-                                            <RequestFriend 
-                                                friends={requestsFriend}
-                                                acceptRequest={acceptRequest}
-                                            />
-                                        )}
-                                    </div>
-                                </>
-                            )}
-
-                            {activeTab == "best-friends" && (
-                                <>
-                                    <div className="flex flex-row mb-4">
-
-                                        <h2 className="w-[200px] text-sm text-neutral-800 dark:text-white font-semibold">Melhores amigos</h2>
-                                        <div className="w-full flex justify-end">
-
-                                            <input className="text-sm text-gray-700 dark:text-white bg-white dark:bg-neutral-700 border border-neutral-200/50 dark:border-neutral-700/50 rounded-lg pl-2 py-2" type="text" placeholder="Procurar"></input>
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
-                                        {friends && (
-                                            <ListFriends friends={friends}/>
-                                        )}
-                                    </div>
-                                </>
-                            )}
                         </div>
                     </div>
-                    
                 </Container>
-            </div>
-            {toaster.show && (
-                <Toaster
-                    toaster={toaster}
-                    setToaster={setToaster}
-                />
-            )}
+                <div className="w-full flex flex-col sm:w-[30%] gap-4" >
 
+                    <Container className="rounded-2xl" padding="p-4">
+                        <h1 className="text-lg font-semibold mb-4">Amigos próximos</h1>
+                        <div className="grid grid-cols-2 gap-4">
+
+                            {sugestedFriends && sugestedFriends.map((user) => (
+                                    
+                                <CardUser 
+                                    user={user} 
+                                    key={user.id} 
+                                />
+                            ))}
+                        </div>
+                    </Container>
+                    <Container className="rounded-2xl" padding="p-4">
+                        <h1 className="text-lg font-semibold mb-4">Amigos sugeridos</h1>
+                        <div className="grid grid-cols-2 gap-4">
+
+                            {sugestedFriends && sugestedFriends.map((user) => (
+                                    
+                                <CardUser 
+                                    user={user} 
+                                    key={user.id} 
+                                />
+                            ))}
+                        </div>
+                    </Container>
+                </div>
+
+            </div>
+            
+            {toaster.show && (
+            <Toaster
+                toaster={toaster}
+                setToaster={setToaster}
+            />
+            )}
         </>
     )
 }

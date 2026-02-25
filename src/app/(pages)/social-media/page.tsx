@@ -27,6 +27,7 @@ import ClockIcon from "../../../../components/icons/clock";
 import CommunityIcon from "../../../../components/icons/community";
 import Link from "next/link";
 import Sidebar from "../../../../components/sidebar";
+import SidebarFooter from "../../../../components/sidebar-footer";
 
 interface NewPost {
   description: string;
@@ -154,7 +155,7 @@ export default function Home() {
   async function getEvent() {
 
     try {
-      const response = await get("/social-media/community-event/2");
+      const response = await get("/social-media/community-event/random-event");
       setEvent(response.data);
     } catch (error: any) {
 
@@ -244,10 +245,10 @@ export default function Home() {
               <Feed feed={feed} />
 
             </div>
-            <div className="hidden sm:block w-[2/5]">
-              <Container className="mb-4 rounded-md">
-                {event && (
-                  <>
+            <div className="hidden sm:block relative w-[2/5]">
+                {event != null && event?.length > 0 && (
+                  <Container className="mb-4 rounded-md">
+                  
                     <div className="flex flex-row justify-between">
 
                       <label className="text-sm font-semibold mb-4 ">Próximo Evento</label>
@@ -298,11 +299,55 @@ export default function Home() {
                       </div>
 
                     </Card>
-                  </>
+                  </Container>
+                )}
+
+                {event?.length === 0 && (
+                  <Container className="mb-4 rounded-md">
+                    <div className="flex flex-row justify-between">
+
+                      <label className="text-sm font-semibold mb-4 ">Próximo Evento</label>
+                      <CalendarIcon />
+                    </div>
+
+                    <Card className="flex flex-col justify-center bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border border-orange-200 dark:border-orange-800 rounded-xl cursor-pointer hover:shadow-md">
+                      <div className="flex flex-col sm:flex-row mb-4 items-center">
+                        
+                        <h2 className="text-md font-semibold">Nenhum evento próximo</h2>
+                      </div>
+                      <div className="p-2 bg-white/70 dark:bg-black/20 rounded-lg">
+                        <div className="flex items-center gap-2 text-xs">
+                          <PinIcon className="size-3 text-red-500"/>
+                          <span className="font-semibold text-xs"></span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs">
+                          <CalendarIcon className="size-3 text-orange-500"/>
+                        </div>
+                        
+                        
+                      </div>
+                      <div className="flex flex-row justify-center gap-2 mt-4">
+
+                        <Button>
+                          <InfoIcon />
+                        </Button>
+
+                        {event?.link && (
+
+                          <Button>
+                            <MoneyIcon />
+                          </Button>
+
+                        )}
+
+                      </div>
+
+                    </Card>
+                  </Container>
                 )}
 
                 {!event && (
-                  <>
+                  <Container className="mb-4 rounded-md">
                     <div className="flex flex-row justify-center">
 
                       <Skeleton rounded="md" height="h-[25px]" width="w-[100px]" />
@@ -325,9 +370,9 @@ export default function Home() {
                       </div>
 
                     </div>
-                  </>
+                  
+                  </Container>
                 )}
-              </Container>
 
               <Container className="mb-4 rounded-md">
                 <div className="flex flex-row justify-between">
@@ -449,6 +494,7 @@ export default function Home() {
                   </ColorButtom>
  
               </Container>
+              <SidebarFooter />
             </div>
           </div>
 
