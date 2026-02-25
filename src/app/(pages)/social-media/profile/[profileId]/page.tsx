@@ -30,6 +30,8 @@ import PinIcon from '../../../../../../components/icons/pin';
 import UsersIcon from '../../../../../../components/icons/users';
 import CommunityIcon from '../../../../../../components/icons/community';
 import BorderButton from '../../../../../../components/border-button';
+import CardUser from '../../../../../../components/users/card-user';
+import SidebarFooter from '../../../../../../components/sidebar-footer';
 
 interface UserPhoto {
     id: number;
@@ -378,29 +380,10 @@ export default function Home(){
 
                             {myFriends && myFriends.map((friend) => (
                                 
-                                    <div className="relative w-full flex flex-row gap-2 mb-2 overflow-hidden group justify-between items-center border-1 border-neutral-200 dark:border-neutral-800 rounded-2xl" key={friend.id}>
-                                        <div className="flex flex-col items-center">
-
-                                            <Image
-                                                src={friend?.photo_path ?? '/imgs/placeholder.png'}
-                                                alt="Foto de perfil"                            
-                                                className="w-full h-[155px] rounded-xl aspect-[1/1] object-cover group-hover:scale-110 transition-all duration-300 ease-in-out"
-                                                width={50}
-                                                height={50}
-                                                unoptimized
-                                            />
-                                            <Link href={`/social-media/profile/${friend?.name}`} key={friend.id} className="absolute w-full h-auto bottom-0 left-0 flex flex-col bg-linear-to-t from-black via-black/70 to-transparent rounded-b-xl p-4">
-
-                                                <span className="text-sm font-semibold">{friend?.name}</span>
-                                                <p className="w-full flex text-xs font-normal text-gray-300 text-wrap">{friend?.title}</p>
-                                                <p className="text-xs font-normal text-gray-400">{friend?.location}</p>
-
-                                            </Link>
-                                        </div>
-                                        <Button onClick={() => setModalNewPhoto(true)} className="absolute right-2 top-2 text-sm text-semibold">
-                                            <EllipsisVerticalIcon className="size-3"/>
-                                        </Button>
-                                    </div>
+                                <CardUser 
+                                    key={friend.id}
+                                    user={friend}
+                                />
                             ))}
                         </div>
                         <div className="w-full flex flex-row justify-center">
@@ -528,7 +511,7 @@ export default function Home(){
                     </div>
                 </Container>
             </div>
-            <div className="col-span-full sm:col-span-3 gap-4">
+            <div className="relative col-span-full sm:col-span-3 gap-4">
                 <Container className="rounded-2xl" padding="p-0">
                     <div className="flex flex-col p-4">
                         <h1 className="text-lg font-semibold mb-4">Siga outras pessoas</h1>
@@ -600,6 +583,7 @@ export default function Home(){
                         </Link>
                     ))}
                 </Container>
+                <SidebarFooter  />
             </div>
             <Modal isOpen={modalNewPhoto} onClose={() => setModalNewPhoto(false)} title="Nova Foto">
                 <input
