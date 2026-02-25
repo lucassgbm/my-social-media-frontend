@@ -72,8 +72,8 @@ export default function Home(){
     return(
         <>
             <Sidebar />
-            <div className="flex flex-col sm:flex-row col-span-full sm:col-span-8 gap-4">
-                <Container className="w-full sm:w-[70%] h-full rounded-2xl" padding="p-0">
+            <div className="flex flex-col sm:flex-row col-span-full sm:col-span-9 gap-4">
+                <Container className="w-full sm:w-[80%] h-full rounded-2xl" padding="p-0">
 
                     <div className="flex flex-col gap-4 mb-4 flex-wrap">
                         <div className="flex flex-col gap-2 border-b border-neutral-200 dark:border-neutral-800 p-4">
@@ -135,7 +135,7 @@ export default function Home(){
                         </div>
                     </div>
                 </Container>
-                <Container className="w-full sm:w-[40%] rounded-2xl" padding="p-4">
+                <Container className="w-full sm:w-[30%] rounded-2xl" padding="p-4">
                     <h1 className="text-lg font-semibold mb-4">Comunidades sugeridas</h1>
                     {sugestedCommunities && sugestedCommunities.map((community) => (
                             

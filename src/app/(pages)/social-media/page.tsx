@@ -176,7 +176,7 @@ export default function Home() {
   return (
     <>
       <Sidebar />
-      <div className="col-span-full sm:col-span-8 gap-6">
+      <div className="col-span-full sm:col-span-9 gap-6">
 
         <ListStories />
           <div className="flex flex-row gap-6">
