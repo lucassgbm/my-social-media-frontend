@@ -8,34 +8,70 @@ import Button from "../../../../../../components/button";
 import CommunityIcon from "../../../../../../components/icons/community";
 import PinIcon from "../../../../../../components/icons/pin";
 import EllipsisVerticalIcon from "../../../../../../components/icons/ellipsis";
+import RingImage from "../../../../../../components/ring-image";
 
 export default function Home(){
     
     const [loading, setLoading] = useState(false);
 
+    const [community, setCommunity] = useState({
+        id: 1,
+        name: "Drift racing",
+        description: "Lorem ipsum dolor sit amet consectetur adipisicing elit. Harum nulla vitae cumque ullam laudantium sunt error illum, delectus voluptatum dicta pariatur quas perspiciatis. Ex quisquam obcaecati ratione, alias ullam tenetur!",
+        image: "/imgs/drift.jpg"
+    });
+
     const topics = [
         {
             id: 1,
             title: "Descrição do tópico 1",
+            image: "/imgs/drift.jpg"
         },
         {
             id: 2,
             title: "Descrição do tópico 2",
+            image: "/imgs/drift.jpg"
         },
         {
             id: 3,
             title: "Descrição do tópico 3",
+            image: "/imgs/drift.jpg"
         },
         {
             id: 4,
             title: "Descrição do tópico 4",
+            image: "/imgs/drift.jpg"
         }
     ]
+
+    const members = [
+        {
+            id: 1,
+            name: "Nome do membro 1",
+            image: "/imgs/drift.jpg"
+        },
+        {
+            id: 2,
+            name: "Nome do membro 2",
+            image: "/imgs/drift.jpg"
+        },
+        {
+            id: 3,
+            name: "Nome do membro 3",
+            image: "/imgs/drift.jpg"
+        },
+        {
+            id: 4,
+            name: "Nome do membro 4",
+            image: "/imgs/drift.jpg"
+        }
+    ]
+    
     return(
         <>
-            <div className="sticky top-0 h-[600px] hidden sm:grid sm:col-span-2 gap-4">
+            <div className="sticky top-0 h-[600px] hidden sm:grid sm:col-span-1 gap-4">
 
-                <Container className="rounded-lg">
+                <Container className="w-full justify-center rounded-lg">
                     <Image
                         src="/imgs/drift.jpg"
                         alt="Logo"
@@ -44,9 +80,27 @@ export default function Home(){
                         unoptimized
                         className="w-full aspect-[1/1] object-cover rounded-lg"
                     />
+                    <div className="flex bg-neutral-700/80 rounded-full aspect-[1/1] my-2 text-4xl font-semibold items-center justify-center">{community.name.charAt(0).toUpperCase()}</div>
+                    <div className="flex flex-col gap-2 rounded-2xl mt-4">
+                        {members.map((member) => (
+                            <div className="flex flex-row gap-2 justify-center items-center" key={member.id}>
+                                <RingImage className="aspect-[1/1]">
+
+                                    <Image
+                                        src={member.image ?? '/imgs/placeholder.png'}
+                                        alt="Foto do membro"
+                                        width={100}
+                                        height={100}
+                                        unoptimized
+                                        className="w-[50px] h-[50px] aspect-[1/1] object-cover rounded-full"
+                                    />
+                                </RingImage>
+                            </div>
+                        ))}
+                    </div>
                 </Container>
             </div>
-            <div className="col-span-full sm:col-span-8 flex flex-col">
+            <div className="col-span-full sm:col-span-9 flex flex-col">
 
                 <Container className="rounded-2xl" padding="p-0">
 
@@ -64,8 +118,8 @@ export default function Home(){
                                 <PinIcon className="size-3" />
                                 <p className="text-neutral-500">Brasília - DF</p>
                             </div>
-                            <h1 className="text-2xl font-semibold">Nome da comunidade</h1>
-                            <p className="text-gray-600">Descrição da comunidade</p>
+                            <h1 className="text-2xl font-semibold">{community.name}</h1>
+                            <p className="text-gray-400">{community.description}</p>
                         </div>
 
                         <div className="w-full flex flex-row p-4 mt-4 p-4">
@@ -142,14 +196,24 @@ export default function Home(){
                             unoptimized
                             className="w-full aspect-[1/1] object-cover rounded-2xl"
                         />
-                        <div className="w-full cols-span-2 justify-center">ver mais</div>
+                        <div className="w-full cols-span-2 text-sm text-neutral-400 justify-center">ver mais</div>
                     </Container>
                     <Container className="w-1/2 rounded-2xl" padding="p-0">
                         <h1 className="text-lg font-semibold p-4">Tópicos</h1>
                         {topics.map((topic) => (
                             
-                            <div className="flex flex-row gap-2 p-4 text-xs justify-between items-center" key={topic.id}>
-                                <p className="">{topic.title}</p>
+                            <div className="flex flex-row gap-2 p-4 text-xs justify-between items-center rounded-2xl hover:bg-neutral-950 transition duration-300 ease-in-out cursor-pointer" key={topic.id}>
+                                <div className="flex flex-row gap-2 items-center">
+                                    <Image
+                                        src={topic.image ?? '/imgs/placeholder.png'}
+                                        alt="Foto de perfil"
+                                        width={100}
+                                        height={100}
+                                        unoptimized
+                                        className="w-[30px] aspect-[1/1] object-cover rounded-full"
+                                    />
+                                    <p className="">{topic.title}</p>
+                                </div>
                                 <Button>
 
                                     <EllipsisVerticalIcon className="size-3" />
