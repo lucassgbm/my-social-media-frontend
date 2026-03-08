@@ -3,7 +3,7 @@
 import Image from "next/image";
 
 import React, { useContext, useEffect, useRef, useState } from "react";
-import EllipsisVerticalIcon from "../../../../components/icons/ellipsis";
+import { useRouter } from "next/navigation";
 import InfoIcon from "../../../../components/icons/info";
 import MoneyIcon from "../../../../components/icons/money";
 import Feed from "../../../../components/feed";
@@ -25,9 +25,12 @@ import CalendarIcon from "../../../../components/icons/calendar";
 import PinIcon from "../../../../components/icons/pin";
 import ClockIcon from "../../../../components/icons/clock";
 import CommunityIcon from "../../../../components/icons/community";
-import Link from "next/link";
 import Sidebar from "../../../../components/sidebar";
 import SidebarFooter from "../../../../components/sidebar-footer";
+import UsersIcon from "../../../../components/icons/users";
+import CardUser from "../../../../components/users/card-user";
+import ShowMore from "../../../../components/show-more";
+import CardEvent from "../../../../components/events/card-event";
 
 interface NewPost {
   description: string;
@@ -89,6 +92,73 @@ export default function Home() {
   const handleButtonClick = () => {
     inputRef.current?.click();
   };
+
+  const router = useRouter(); 
+
+  const sugestedFriends = [
+    {
+        id: 1,
+        name: "João",
+        title: "Estudante",
+        photo_path: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80"
+    },
+    {
+        id: 2,
+        name: "Maria",
+        title: "Maquiadora",
+        photo_path: "https://images.unsplash.com/photo-1769097137026-c482044ca0fb?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDE5fHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D"
+    },
+    {
+        id: 3,
+        name: "Pedro",
+        title: "Desenvolvedor Full Stack",
+        photo_path: "https://images.unsplash.com/photo-1770191954591-952ab5c63e68?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDkyfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D"
+    },
+    {
+        id: 4,
+        name: "Ana",
+        title: "Dentista",
+        photo_path: "https://images.unsplash.com/photo-1770576568718-6747e3d85de8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDMzfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D"
+    },
+    {
+        id: 5,
+        name: "Pedro",
+        title: "Empresário",
+        photo_path: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80"
+    },
+    {
+        id: 6,
+        name: "Maria",
+        title: "Dentista",
+        photo_path: "https://images.unsplash.com/photo-1770576568718-6747e3d85de8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDMzfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D"
+    },
+    {
+        id: 7,
+        name: "Maria",
+        title: "Advogada",
+        photo_path: "https://images.unsplash.com/photo-1769097137026-c482044ca0fb?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDE5fHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D"
+    },
+  ]
+
+  const sugestedEvents = [
+    {
+        id: 1,
+        title: "Megadrift",
+        description: "Descrição do evento 1",
+        location: "Local do evento 1",
+        date: "01/10/2026",
+        time: "10:00",
+        image: "https://images.unsplash.com/photo-1542362567-b07e54358753?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8Y2Fyc3xlbnwwfHwwfHx8MA%3D%3D"
+    },
+    {
+        id: 2,
+        title: "Evento 2",
+        description: "Descrição do evento 2",
+        location: "Local do evento 2",
+        date: "01/10/2026",
+        time: "10:00",
+        image: "https://plus.unsplash.com/premium_photo-1664304752635-3e0d8d8185e3?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8Y2Fyc3xlbnwwfHwwfHx8MA%3D%3D"
+    }]
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -181,7 +251,7 @@ export default function Home() {
 
         <ListStories />
           <div className="flex flex-row gap-6">
-            <div className="w-full sm:w-[3/5] h-full rounded-2xl mb-4">
+            <div className="w-full sm:w-5/7 h-full rounded-2xl mb-4">
               <Container className="flex flex-row gap-2 mb-4 items-center rounded-md">
                 {myInfo && (
 
@@ -245,8 +315,8 @@ export default function Home() {
               <Feed feed={feed} />
 
             </div>
-            <div className="hidden sm:block relative w-[2/5]">
-                {event != null && event?.length > 0 && (
+            <div className="hidden sm:block relative w-2/7">
+                {/* {event && (
                   <Container className="mb-4 rounded-md">
                   
                     <div className="flex flex-row justify-between">
@@ -255,52 +325,9 @@ export default function Home() {
                       <CalendarIcon />
                     </div>
 
-                    <Card className="flex flex-col justify-center bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border border-orange-200 dark:border-orange-800 rounded-xl cursor-pointer hover:shadow-md">
-                      <div className="flex flex-col sm:flex-row mb-4 items-center">
-                        <Image
-                          src={'/imgs/placeholder.png'}
-                          alt="Foto de perfil"
-                          className="rounded-md w-[60px] aspect-[1/1] mr-4 hover:opacity-90 object-cover"
-                          width={70}
-                          height={70}
-                          loading="lazy"
-                        />
-                        <h2 className="text-md font-semibold">{event?.title}</h2>
-                      </div>
-                      <div className="p-2 bg-white/70 dark:bg-black/20 rounded-lg">
-                        <div className="flex items-center gap-2 text-xs">
-                          <PinIcon className="size-3 text-red-500"/>
-                          <span className="font-semibold text-xs">{event?.local}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs">
-                          <CalendarIcon className="size-3 text-orange-500"/>
-                          <span className="text-xs">{`${event?.date_start}`}</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 text-xs">
-                          <ClockIcon className="size-3 text-orange-500"/>
-                          <span className="text-xs">{`${event.time_start} às ${event.time_end}`}</span>
-                        </div>
-                      </div>
-                      <div className="flex flex-row justify-center gap-2 mt-4">
-
-                        <Button>
-                          <InfoIcon />
-                        </Button>
-
-                        {event?.link && (
-
-                          <Button>
-                            <MoneyIcon />
-                          </Button>
-
-                        )}
-
-                      </div>
-
-                    </Card>
+                    <CardEvent event={event} />
                   </Container>
-                )}
+                )} */}
 
                 {event?.length === 0 && (
                   <Container className="mb-4 rounded-md">
@@ -375,50 +402,32 @@ export default function Home() {
                 )}
 
               <Container className="mb-4 rounded-md">
-                <div className="flex flex-row justify-between">
+                <div className="flex flex-row justify-between mb-4">
                   <label className="text-sm font-semibold">Eventos sugeridos</label>
                   <CalendarIcon />
                 </div>
-                <Card className="flex flex-col justify-center mt-4 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border border-orange-200 dark:border-orange-800 rounded-xl cursor-pointer hover:shadow-md">
-                  <div className="flex flex-row items-center rounded-sm ">
-                    <Image
-                      src={"/imgs/placeholder.png"}
-                      alt="Foto de perfil"
-                      className="rounded-md w-[40px] aspect-[1/1] mr-2 hover:opacity-90 object-cover"
-                      width={110}
-                      height={110}
-                      priority
-                    />
-                    <div className="flex flex-col text-left">
-                      <label className="text-xs font-semibold">Nome evento</label>
-                      <p className="text-xs font-normal w-full" 
-
-                      >
-                        Lorem ipsum dolor sit amet consectetur adipisicing elit.
-                      </p>
-                      
-                    </div>
-                  </div>
-                  <div className="mt-3 p-2 bg-white/70 dark:bg-black/20 rounded-lg">
-                    <div className="flex items-center gap-2 text-xs">
-                      <PinIcon className="size-3 text-red-500"/>
-                      <span className="font-semibold text-xs">Pátio Brasil - Brasília</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs">
-                      <CalendarIcon className="size-3 text-orange-500"/>
-                      <span className="text-xs">16/10/2025</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs">
-                      <ClockIcon className="size-3 text-orange-500"/>
-                      <span className="text-xs">às 20:00</span>
-                    </div>
-
-                  </div>
+                <div className="flex flex-col gap-4">
+                  {sugestedEvents.map((event) => (
+                    
+                    <CardEvent event={event} key={event.id} />
+                  ))}
+                </div>
                 
-                </Card>
-                <ColorButtom className="w-full mt-4 mb-2 rounded-md text-sm font-semibold">
-                    Ver mais 
-                  </ColorButtom>
+                <ShowMore onClick={() => router.push('/social-media/events')} />
+
+              </Container>
+              <Container className="mb-4 rounded-md">
+                  <div className="flex flex-row justify-between">
+                    <label className="text-sm font-semibold">Conecte com outras pessoas</label>
+                    <UsersIcon className="size-5" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-4">
+                      {sugestedFriends.map((friend) => (
+                          <CardUser user={friend} key={friend.id} />
+                      ))}
+                  </div>
+                  <ShowMore onClick={() => router.push('/social-media/events')} />
+
               </Container>
               <Container className="mb-4 rounded-md">
                   <div className="flex flex-row justify-between">
@@ -440,7 +449,7 @@ export default function Home() {
                       
                       return (
                         
-                        <Card className="flex flex-col justify-center  mt-4 bg-neutral-100 dark:bg-neutral-800 rounded-xl cursor-pointer hover:shadow-md" key={index}>
+                        <Card className="flex flex-col justify-center  mt-4 bg-neutral-100 dark:bg-neutral-800 border-1 border-neutral-400/30 rounded-xl cursor-pointer hover:shadow-md" key={index}>
                           <div className="flex flex-row items-center rounded-sm mb-2">
                             <Image
                               src={community.photo ?? "/imgs/placeholder.png"}
@@ -488,11 +497,7 @@ export default function Home() {
 
                     } 
                   ))}
-
-                  <ColorButtom className="w-full mt-4 mb-2 rounded-md text-sm font-semibold">
-                    Ver mais 
-                  </ColorButtom>
- 
+                  <ShowMore onClick={() => router.push('/social-media/communities')} />
               </Container>
               <SidebarFooter />
             </div>

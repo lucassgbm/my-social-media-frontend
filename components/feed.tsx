@@ -5,6 +5,9 @@ import HeartIcon from "./icons/heart";
 import MessageIcon from "./icons/message";
 import Container from "./container";
 import AirPlaneIcon from "./icons/airplane";
+import ModalPost from "./posts/modal-post";
+import { useState } from "react";
+import Modal from "./modal";
 
 interface User {
   name: string;
@@ -34,6 +37,9 @@ interface FeedProps {
 }
 
 export default function Feed({ feed }: FeedProps) {
+
+  const [modalPost, setModalPost] = useState(false);
+  const [post, setPost] = useState<Post | null>(null);
 
   return (
     <>
@@ -84,7 +90,7 @@ export default function Feed({ feed }: FeedProps) {
                   <HeartIcon className="size-5" />
                   
                 </button>
-                <button className="flex w-1/3 flex-row gap-1 items-center justify-center hover:bg-black/30 cursor-pointer transition duration-300 ease-in-out py-2 rounded-md">
+                <button onClick={() => {setModalPost(true); setPost(post)}} className="flex w-1/3 flex-row gap-1 items-center justify-center hover:bg-black/30 cursor-pointer transition duration-300 ease-in-out py-2 rounded-md">
                   <MessageIcon className="size-5" />
                   
                 </button>
@@ -96,6 +102,31 @@ export default function Feed({ feed }: FeedProps) {
           </div>
         );
       })}
+
+      <Modal
+        isOpen={modalPost}
+        onClose={() => {
+          setModalPost(false);
+        }}
+        title="Post"
+      >
+
+        <div className="w-full flex flex-row">
+          <Image
+            src={'/imgs/placeholder.png'}
+            alt="Imagem do Post"
+            className="w-2/3 aspect-[9/10] h-[50%] object-cover"
+            width={500}
+            height={500}
+            unoptimized
+          />
+          <div className="w-1/3 h-[50%] p-4 text-sm">
+            Lorem ipsum dolor sit amet consectetur adipisicing elit. Officia, ducimus reiciendis in quo voluptatum quidem rem earum quos nulla error delectus magni incidunt? Debitis, repellendus omnis? Rem reprehenderit soluta nihil!
+          </div>
+        </div>
+
+      </Modal>
+
     </>
   );
 }

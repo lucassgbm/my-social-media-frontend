@@ -37,7 +37,7 @@ export default function Header() {
     const imageUser = myInfo?.photo ?? '/imgs/placeholder.png';
 
     return (
-        <header className="flex w-full bg-white dark:bg-neutral-900 justify-center">
+        <header className="flex w-full bg-white dark:bg-neutral-900 border-b border-neutral-400/30 dark:border-neutral-800 justify-center">
             <nav className="w-full max-w-7xl px-6 py-2 flex items-center justify-between">
 
                 <div className="w-1/3 text-xl font-bold dark:text-white text-neutral-800">

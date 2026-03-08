@@ -73,68 +73,71 @@ export default function Home(){
         <>
             <Sidebar />
             <div className="flex flex-col sm:flex-row col-span-full sm:col-span-9 gap-4">
-                <Container className="w-full sm:w-[80%] h-full rounded-2xl" padding="p-0">
+                
+                <div className="w-full sm:w-[70%] flex flex-col">
 
-                    <div className="flex flex-col gap-4 mb-4 flex-wrap">
-                        <div className="flex flex-col gap-2 border-b border-neutral-200 dark:border-neutral-800 p-4">
-                            <div>
+                    <div className="flex flex-col gap-2 p-4">
+                        <div>
 
-                                <h1 className="text-2xl font-semibold mb-4">Comunidades</h1>
-                            </div>
-                            <div className="flex flex-col gap-2">
-
-                                <div className="w-full flex flex-row gap-2 justify-end">
-
-                                    <BorderButton
-                                        onClick={() => setModalNewCommunity(true)}
-                                    >
-                                        
-                                        Criar comunidade
-                                    </BorderButton>
-                                    <ColorButton
-                                        onClick={() => setModalNewCommunity(true)}
-                                    >
-                                        <SearchIcon className="size-5" />
-                                    </ColorButton>
-                                    
-                                </div>
-                                <div className="w-full flex flex-col sm:flex-row items-center gap-2 mt-2">
-
-                                    <div className="flex flex-row items-center bg-neutral-800 hover:bg-neutral-900 text-xs font-semibold py-2 px-2 pl-2 pr-2 rounded-md cursor-pointer gap-2">
-                                        Automobilismo
-                                        <CloseIcon className="size-3" />
-                                    </div>
-                                </div>
-                                
-                            </div>
+                            <h1 className="text-2xl font-semibold mb-4">Comunidades</h1>
                         </div>
+                        <div className="flex flex-col gap-2">
 
-                        {loading && (
-                            <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 p-4">
+                            <div className="w-full flex flex-row gap-2 justify-end">
 
-                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
-                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
-                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
-                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
-                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
-                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
-                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
-                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
-                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
-
+                                <BorderButton
+                                    onClick={() => setModalNewCommunity(true)}
+                                >
+                                    
+                                    Criar comunidade
+                                </BorderButton>
+                                <ColorButton
+                                    onClick={() => setModalNewCommunity(true)}
+                                >
+                                    <SearchIcon className="size-5" />
+                                </ColorButton>
+                                
                             </div>
-                        )}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4">
-                            {communities && (
-                                
-                                <ListCommunities 
-                                    communities={communities} 
-                                />
-                                
-                            )}
+                            <div className="w-full flex flex-col sm:flex-row items-center gap-2 mt-2">
+
+                                <div className="flex flex-row items-center bg-neutral-800 hover:bg-neutral-900 text-xs font-semibold py-2 px-2 pl-2 pr-2 rounded-md cursor-pointer gap-2">
+                                    Automobilismo
+                                    <CloseIcon className="size-3" />
+                                </div>
+                            </div>
+                            
                         </div>
                     </div>
-                </Container>
+                    <Container className="w-full h-full rounded-2xl" padding="p-0">
+                        <div className="flex flex-col gap-4 mb-4 flex-wrap">
+
+                            {loading && (
+                                <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 p-4">
+
+                                    <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
+                                    <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
+                                    <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
+                                    <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
+                                    <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
+                                    <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
+                                    <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
+                                    <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
+                                    <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
+
+                                </div>
+                            )}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4">
+                                {communities && (
+                                    
+                                    <ListCommunities 
+                                        communities={communities} 
+                                    />
+                                    
+                                )}
+                            </div>
+                        </div>
+                    </Container>
+                </div>
                 <Container className="w-full sm:w-[30%] rounded-2xl" padding="p-4">
                     <h1 className="text-lg font-semibold mb-4">Comunidades sugeridas</h1>
                     {sugestedCommunities && sugestedCommunities.map((community) => (

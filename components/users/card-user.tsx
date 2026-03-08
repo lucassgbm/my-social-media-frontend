@@ -24,7 +24,7 @@ export default function CardUser({user}: {user: User}) {
                     height={50}
                     unoptimized
                 />
-                <Link href={`/social-media/profile/${user?.name}`} key={user?.id} className="absolute w-full h-auto bottom-0 left-0 flex flex-col bg-linear-to-t from-black via-black/70 to-transparent rounded-b-xl p-4">
+                <Link href={`/social-media/user/${user?.name}`} key={user?.id} className="absolute w-full h-auto bottom-0 left-0 flex flex-col bg-linear-to-t from-black via-black/70 to-transparent rounded-b-xl p-4">
 
                     <span className="text-sm font-semibold">{user?.name}</span>
                     <p className="w-full flex text-xs font-normal text-gray-300 text-wrap">{user?.title}</p>

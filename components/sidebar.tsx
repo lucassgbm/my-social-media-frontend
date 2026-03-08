@@ -86,62 +86,62 @@ export default function Sidebar() {
                             </div>
 
                         </Card>
+                        <nav className="w-full flex flex-col gap-2 overflow-y-auto mt-6">
+                            <ul className="list-none">
+
+                                <Link href="/social-media">
+                                    <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
+                                        
+                                        <Button>
+                                            <HomeIcon className="size-5 dark:text-white text-neutral-800"/>
+                                        </Button>
+
+                                    </li>
+                                </Link>
+                                
+                                <Link href="/social-media/friends">
+                                    <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
+                                        <Button>
+                                            <UsersIcon className="size-5 dark:text-white text-neutral-800"/>
+                                        </Button>
+
+                                    </li>
+                                </Link>
+                                <Link href="/social-media/communities">
+                                    <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
+                                        <Button>
+                                            <CommunityIcon className="size-5 dark:text-white text-neutral-800"/>
+                                        </Button>
+
+                                    </li>
+                                </Link>
+                                <Link href="/social-media/events">
+                                    <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
+                                        <Button>
+                                            <TrophyIcon className="size-5 dark:text-white text-neutral-800"/>
+                                        </Button>
+
+                                    </li>
+                                </Link>
+                                
+                                <Link href="/social-media/messages">
+                                    <li className="flex w-full py-1 items-center justify-center rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition justify-between">
+                                        <div className="flex flex-row gap-2 items-center">
+                                            <Button className="relative">
+                                                <MessageIcon className="size-5 dark:text-white text-neutral-800"/>
+                                                <div className="absolute -bottom-1 -right-2">
+                                                    <span className="bg-[#f53003] rounded-full text-white text-xs w-5 h-5 flex items-center justify-center">3</span>
+                                                </div>
+                                            </Button>
+                                        </div>
+                                        
+                                    </li>
+                                </Link>
+                                
+                            </ul>
+                        </nav>
                     </div>
 
-                    <nav className="w-full flex flex-col gap-2 overflow-y-auto mt-6">
-                        <ul className="list-none">
-
-                            <Link href="/social-media">
-                                <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
-                                    
-                                    <Button>
-                                        <HomeIcon className="size-5 dark:text-white text-neutral-800"/>
-                                    </Button>
-
-                                </li>
-                            </Link>
-                            
-                            <Link href="/social-media/friends">
-                                <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
-                                    <Button>
-                                        <UsersIcon className="size-5 dark:text-white text-neutral-800"/>
-                                    </Button>
-
-                                </li>
-                            </Link>
-                            <Link href="/social-media/communities">
-                                <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
-                                    <Button>
-                                        <CommunityIcon className="size-5 dark:text-white text-neutral-800"/>
-                                    </Button>
-
-                                </li>
-                            </Link>
-                            <Link href="/social-media/events">
-                                <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
-                                    <Button>
-                                        <TrophyIcon className="size-5 dark:text-white text-neutral-800"/>
-                                    </Button>
-
-                                </li>
-                            </Link>
-                            
-                            <Link href="/social-media/messages">
-                                <li className="flex w-full py-1 items-center justify-center rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition justify-between">
-                                    <div className="flex flex-row gap-2 items-center">
-                                        <Button className="relative">
-                                            <MessageIcon className="size-5 dark:text-white text-neutral-800"/>
-                                            <div className="absolute -bottom-1 -right-2">
-                                                <span className="bg-[#f53003] rounded-full text-white text-xs w-5 h-5 flex items-center justify-center">3</span>
-                                            </div>
-                                        </Button>
-                                    </div>
-                                    
-                                </li>
-                            </Link>
-                             
-                        </ul>
-                    </nav>
 
                     <nav className="w-full flex flex-col gap-2 overflow-y-auto">
                          <ul className="list-none">

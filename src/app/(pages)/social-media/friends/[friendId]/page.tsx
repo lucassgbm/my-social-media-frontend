@@ -319,7 +319,7 @@ export default function Home(){
                                         </div>
                                     </div>
 
-                                    <Link href="/social-media/user/edit">
+                                    <Link href="/social-media/profile/edit">
                                         <Button className="text-sm font-semibold">
                                             <div className="flex flex-row gap-2 items-center">
                                                 <PencilSquareIcon className="size-4"/>
@@ -520,7 +520,7 @@ export default function Home(){
 
                             {sugestedFriends && sugestedFriends.map((friend) => (
                                 
-                                <Link href={`/social-media/user/${friend?.name}`} key={friend.id}>
+                                <Link href={`/social-media/profile/${friend?.name}`} key={friend.id}>
 
                                     <div className="relative overflow-hidden w-full flex flex-row gap-2 mb-2 group justify-between items-center group border-1 border-neutral-200 dark:border-neutral-800 rounded-2xl" key={friend.id}>
                                         <div className="flex flex-col items-center">
@@ -557,7 +557,7 @@ export default function Home(){
                     <h1 className="text-lg font-semibold mb-4">Comunidades sugeridas</h1>
                     {sugestedCommunities && sugestedCommunities.map((community) => (
                             
-                        <Link href={`/social-media/community/${community?.name}`} key={community.id}>
+                        <Link href={`/social-media/profile/${community?.name}`} key={community.id}>
                             <div className="relative w-full flex flex-row gap-2 mb-2 overflow-hidden group justify-between items-center border-1 border-neutral-200 dark:border-neutral-800 rounded-2xl">
                                 <div className="flex flex-col items-center">
 
