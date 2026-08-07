@@ -1,171 +1,213 @@
 'use client';
 
-import { useContext } from "react";
-import Image from "next/image";
-import HomeIcon from "./icons/home";
-import UsersIcon from "./icons/users";
-import CommunityIcon from "./icons/community";
-import TrophyIcon from "./icons/trophy";
-import MessageIcon from "./icons/message";
-import SettingsIcon from "./icons/settings";
+import { useContext, useEffect, useState } from "react";
+import Image from "./remote-image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Container from "./container";
-import Button from "./button";
 import Skeleton from "./skeleton";
 import { AppContext } from "@/app/(pages)/social-media/layout";
 import Card from "./card";
 import RingImage from "./ring-image";
 import PinIcon from "./icons/pin";
-import BookMarkIcon from "./icons/book-mark";
+import UsersIcon from "./icons/users";
+import CommunityIcon from "./icons/community";
+import ArrowLeftIcon from "./icons/arrow-left";
+import ArrowRightIcon from "./icons/arrow-right";
+import {
+    primaryNavItems,
+    secondaryNavItems,
+    isNavItemActive,
+    type NavItem,
+} from "./nav-items";
 
+const STORAGE_KEY = "sidebar:collapsed";
 
+function SidebarLink({
+    item,
+    active,
+    expanded,
+}: {
+    item: NavItem;
+    active: boolean;
+    expanded: boolean;
+}) {
+    const Icon = item.icon;
+
+    return (
+        <li>
+            <Link
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                title={item.label}
+                className={`relative flex w-full items-center gap-3 rounded-field px-3 py-2
+                    transition-colors cursor-pointer
+                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring
+                    ${expanded ? "lg:justify-start justify-center" : "justify-center"}
+                    ${active
+                        ? "bg-brand-subtle text-brand font-semibold"
+                        : "text-content hover:bg-surface-2"
+                    }`}
+            >
+                <span className="relative shrink-0">
+                    <Icon className="size-5" />
+                    {item.badge ? (
+                        <span
+                            className="absolute -top-1.5 -right-2 flex h-4 min-w-4 items-center justify-center
+                                rounded-full bg-danger px-1 text-[10px] font-semibold text-white"
+                            aria-hidden="true"
+                        >
+                            {item.badge}
+                        </span>
+                    ) : null}
+                </span>
+
+                {/* No modo recolhido o rótulo fica só no title/aria */}
+                <span className={expanded ? "hidden lg:inline text-sm" : "sr-only"}>
+                    {item.label}
+                </span>
+
+                {item.badge ? (
+                    <span className="sr-only">{`${item.badge} não lidas`}</span>
+                ) : null}
+            </Link>
+        </li>
+    );
+}
 
 export default function Sidebar() {
-
-    
     const context = useContext(AppContext);
-
+    const pathname = usePathname();
     const { myInfo } = context;
 
+    // Começa expandida no servidor e no primeiro render; a preferência salva
+    // é aplicada depois da montagem para não gerar divergência de hidratação.
+    const [collapsed, setCollapsed] = useState(false);
+
+    useEffect(() => {
+        setCollapsed(window.localStorage.getItem(STORAGE_KEY) === "1");
+    }, []);
+
+    function toggle() {
+        setCollapsed((current) => {
+            const next = !current;
+            window.localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
+            return next;
+        });
+    }
+
+    const expanded = !collapsed;
     const imageUser = myInfo?.photo ?? '/imgs/placeholder.png';
+
     return (
-        <>
-            
-            <div className="sticky top-0 h-[100vh] hidden sm:grid sm:col-span-1 gap-4">
-                <Container className="flex flex-col rounded-md justify-between" padding="p-4">
-                    <div className="flex flex-col justify-center">
-                        {myInfo && (
-                            <>
-                                <div className="flex flex-col">
-                                    <Link href={`/social-media/profile/${myInfo?.name}`}>
-                                        <div className="flex flex-row justify-center items-center">
+        <aside
+            aria-label="Navegação principal"
+            className={`sticky top-4 hidden md:flex h-[calc(100vh-2rem)] shrink-0
+                transition-[width] duration-200 ease-out
+                ${expanded ? "w-20 lg:w-60" : "w-20"}`}
+        >
+            <Container className="flex w-full flex-col justify-between rounded-card overflow-hidden" padding="p-3">
+                <div className="flex flex-col">
 
-                                            <RingImage className="relative min-w-[55px] max-w-[65px]">
-                                                <Image
-                                                    src={imageUser}
-                                                    alt="Foto de perfil"
-                                                    className="rounded-full aspect-[1/1]"
-                                                    width={250}
-                                                    height={250}
-                                                    priority
-                                                    unoptimized
-                                                />
-
-                                            </RingImage>
-                                        </div>
-                                    </Link>
-                                    
-                                    <div className="flex mt-2 items-center gap-1">
-                                        <PinIcon className="size-3 text-green-500"/>
-                                        <span className="text-xs">DF</span>
-                                    </div>
-                                </div>
-                                
-                            </>
-                        
-                        )}
-
-                        {!myInfo && (
-                            <>
-                                <div className="flex flex-row items-center justify-center gap-2 mb-6">
-                                    
-                                    <Skeleton height={"h-[55px]"} width={"w-[55px]"} rounded="full" className="aspect-[1/1]" />
-                                    
-                                </div>
-                            </>
-                        )}
-
-                        <Card className="flex flex-col rounded-2xl gap-2 p-4 mt-4">
-                            <div className="w-full flex flex-row justify-between">
-                                <UsersIcon className="size-4"/>
-                                <label className="text-xs">213</label>
-                            </div>
-                            <div className="w-full flex flex-row justify-between">
-                                <CommunityIcon className="size-4"/>
-                                <label className="text-xs">16</label>
-                            </div>
-
-                        </Card>
-                        <nav className="w-full flex flex-col gap-2 overflow-y-auto mt-6">
-                            <ul className="list-none">
-
-                                <Link href="/social-media">
-                                    <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
-                                        
-                                        <Button>
-                                            <HomeIcon className="size-5 dark:text-white text-neutral-800"/>
-                                        </Button>
-
-                                    </li>
-                                </Link>
-                                
-                                <Link href="/social-media/friends">
-                                    <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
-                                        <Button>
-                                            <UsersIcon className="size-5 dark:text-white text-neutral-800"/>
-                                        </Button>
-
-                                    </li>
-                                </Link>
-                                <Link href="/social-media/communities">
-                                    <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
-                                        <Button>
-                                            <CommunityIcon className="size-5 dark:text-white text-neutral-800"/>
-                                        </Button>
-
-                                    </li>
-                                </Link>
-                                <Link href="/social-media/events">
-                                    <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
-                                        <Button>
-                                            <TrophyIcon className="size-5 dark:text-white text-neutral-800"/>
-                                        </Button>
-
-                                    </li>
-                                </Link>
-                                
-                                <Link href="/social-media/messages">
-                                    <li className="flex w-full py-1 items-center justify-center rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition justify-between">
-                                        <div className="flex flex-row gap-2 items-center">
-                                            <Button className="relative">
-                                                <MessageIcon className="size-5 dark:text-white text-neutral-800"/>
-                                                <div className="absolute -bottom-1 -right-2">
-                                                    <span className="bg-[#f53003] rounded-full text-white text-xs w-5 h-5 flex items-center justify-center">3</span>
-                                                </div>
-                                            </Button>
-                                        </div>
-                                        
-                                    </li>
-                                </Link>
-                                
-                            </ul>
-                        </nav>
+                    {/* Recolher/expandir só faz sentido a partir de lg, onde há espaço para os rótulos */}
+                    <div className="hidden lg:flex justify-end mb-2">
+                        <button
+                            type="button"
+                            onClick={toggle}
+                            aria-label={expanded ? "Recolher menu" : "Expandir menu"}
+                            aria-expanded={expanded}
+                            title={expanded ? "Recolher menu" : "Expandir menu"}
+                            className="rounded-full p-1.5 text-content-muted hover:bg-surface-2 hover:text-content
+                                transition-colors cursor-pointer
+                                focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                        >
+                            {expanded ? (
+                                <ArrowLeftIcon className="size-4" />
+                            ) : (
+                                <ArrowRightIcon className="size-4" />
+                            )}
+                        </button>
                     </div>
 
-
-                    <nav className="w-full flex flex-col gap-2 overflow-y-auto">
-                         <ul className="list-none">
-                         
-                            <Link href="/social-media/items-saved">
-                                <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
-                                    <Button>
-                                        <BookMarkIcon className="size-5 dark:text-white text-neutral-800"/>
-                                    </Button>
-
-                                </li>
+                    {myInfo ? (
+                        <div className={`flex flex-col ${expanded ? "items-center lg:items-start" : "items-center"}`}>
+                            <Link
+                                href={`/social-media/profile/${myInfo?.name}`}
+                                title={myInfo.name}
+                                className="rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                            >
+                                <RingImage className="relative w-[56px]">
+                                    <Image
+                                        src={imageUser}
+                                        alt={`Foto de perfil de ${myInfo.name}`}
+                                        className="rounded-full aspect-square object-cover"
+                                        width={56}
+                                        height={56}
+                                        sizes="56px"
+                                        priority
+                                    />
+                                </RingImage>
                             </Link>
-                            <Link href="/social-media/settings">
-                                <li className="flex w-full items-center justify-center gap-2 py-1 rounded-md hover:bg-white dark:hover:bg-neutral-700 hover:text-green-400 cursor-pointer transition">
 
-                                    <Button>
-                                        <SettingsIcon className="size-5 dark:text-white text-neutral-800"/>
-                                    </Button>
-                                </li>
-                            </Link> 
+                            <p className={`mt-2 w-full text-sm font-semibold truncate ${expanded ? "hidden lg:block" : "hidden"}`}>
+                                {myInfo.name}
+                            </p>
+
+                            <div className="flex mt-2 items-center gap-1">
+                                <PinIcon className="size-3 text-brand" />
+                                <span className="text-xs text-content-muted">DF</span>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex flex-row items-center justify-center gap-2 mb-6">
+                            <Skeleton height="h-[56px]" width="w-[56px]" rounded="full" className="aspect-square" />
+                        </div>
+                    )}
+
+                    <Card className="flex flex-col gap-2 p-3 mt-4">
+                        <div className="flex w-full flex-row items-center justify-between">
+                            <span className="flex items-center gap-2 text-content-muted">
+                                <UsersIcon className="size-4" />
+                                <span className={expanded ? "hidden lg:inline text-xs" : "sr-only"}>Amigos</span>
+                            </span>
+                            <span className="text-xs font-semibold">213</span>
+                        </div>
+                        <div className="flex w-full flex-row items-center justify-between">
+                            <span className="flex items-center gap-2 text-content-muted">
+                                <CommunityIcon className="size-4" />
+                                <span className={expanded ? "hidden lg:inline text-xs" : "sr-only"}>Comunidades</span>
+                            </span>
+                            <span className="text-xs font-semibold">16</span>
+                        </div>
+                    </Card>
+
+                    <nav className="mt-6" aria-label="Seções">
+                        <ul className="flex flex-col gap-1 list-none">
+                            {primaryNavItems.map((item) => (
+                                <SidebarLink
+                                    key={item.href}
+                                    item={item}
+                                    expanded={expanded}
+                                    active={isNavItemActive(item.href, pathname)}
+                                />
+                            ))}
                         </ul>
                     </nav>
-                </Container>
-            </div>
-        </>
+                </div>
+
+                <nav aria-label="Atalhos">
+                    <ul className="flex flex-col gap-1 list-none">
+                        {secondaryNavItems.map((item) => (
+                            <SidebarLink
+                                key={item.href}
+                                item={item}
+                                expanded={expanded}
+                                active={isNavItemActive(item.href, pathname)}
+                            />
+                        ))}
+                    </ul>
+                </nav>
+            </Container>
+        </aside>
     );
 }

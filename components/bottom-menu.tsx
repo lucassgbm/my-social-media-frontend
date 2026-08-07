@@ -1,83 +1,82 @@
+'use client';
+
 import Link from "next/link";
-import Button from "./button";
-import Container from "./container";
-import CommunityIcon from "./icons/community";
-import UsersIcon from "./icons/users";
-import Image from "next/image";
-import MessageIcon from "./icons/message";
-import TrophyIcon from "./icons/trophy";
+import Image from "./remote-image";
 import { useContext } from "react";
+import { usePathname } from "next/navigation";
 import { AppContext } from "@/app/(pages)/social-media/layout";
-import InboxIcon from "./icons/inbox";
+import { primaryNavItems, isNavItemActive } from "./nav-items";
 
-export default function BottomMenu(){
-
+export default function BottomMenu() {
     const context = useContext(AppContext);
-    const { myInfo, openMessages, setOpenMessages } = context;
+    const pathname = usePathname();
+    const { myInfo } = context;
 
-    const imageUser = myInfo?.photo ? `${process.env.NEXT_PUBLIC_STORAGE_API?.replace(/\/$/, '')}/${myInfo.photo?.replace(/^\//, '')}` : "";
-
+    const profileHref = myInfo?.name
+        ? `/social-media/profile/${myInfo.name}`
+        : "/social-media/profile";
 
     return (
-        <Container className="sm:hidden flex fixed w-full bg-white -ml-6 bottom-0 rounded-0">
-            <nav className="w-full">
-                    
-                    <ul className="flex flex-row list-none justify-center">
-                        <Link href={`/social-media/profile/${myInfo?.name}`}>
-                            <li className="flex w-full items-center gap-2 p-2 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-950 cursor-pointer">
-                               
-                                <Image
-                                    src={myInfo?.photo ?? '/imgs/placeholder.png'}
-                                    alt="Foto de perfil"
-                                    className="w-[45px] rounded-full aspect-[1/1]"
-                                    width={250}
-                                    height={250}
-                                    priority
-                                />
-                            </li>
-                        </Link>
-                        
-                        <Link href="/social-media/friends">
-                            <li className="flex w-full items-center gap-2 p-2 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-950 cursor-pointer">
-                                <Button>
-                                    <UsersIcon className="size-8 dark:text-white text-neutral-800"/>
-                                </Button>
+        // fixed inset-x-0: independente do padding do container pai
+        // (antes usava -ml-6 para compensar, o que quebrava em outras larguras)
+        <nav
+            aria-label="Navegação principal"
+            className="md:hidden fixed inset-x-0 bottom-0 z-40 border-t border-line
+                bg-surface pb-[env(safe-area-inset-bottom)]"
+        >
+            <ul className="flex list-none items-center justify-around px-2 py-1.5">
+                <li>
+                    <Link
+                        href={profileHref}
+                        aria-label="Meu perfil"
+                        className="flex items-center justify-center rounded-full p-1.5
+                            hover:bg-surface-2 transition-colors
+                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                    >
+                        <Image
+                            src={myInfo?.photo ?? '/imgs/placeholder.png'}
+                            alt=""
+                            className="w-9 h-9 rounded-full aspect-square object-cover"
+                            width={36}
+                            height={36}
+                            sizes="36px"
+                        />
+                    </Link>
+                </li>
 
-                            </li>
-                        </Link>
-                        <Link href="/social-media/communities">
-                            <li className="flex w-full items-center gap-2 p-2 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-950 cursor-pointer">
-                                <Button>
-                                    <CommunityIcon className="size-8 dark:text-white text-neutral-800"/>
-                                </Button>
+                {primaryNavItems.map((item) => {
+                    const Icon = item.icon;
+                    const active = isNavItemActive(item.href, pathname);
 
-
-                            </li>
-                        </Link>
-
-                        <Link href="/social-media/events">
-                            <li className="flex w-full items-center gap-2 p-2 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-950 cursor-pointer">
-                                
-                                <Button>
-                                    <TrophyIcon className="size-8 dark:text-white text-neutral-800"/>
-                                </Button>
-
-                            </li>
-                        </Link>
-                        
-                        <Link href="#" onClick={() => { setOpenMessages(!openMessages) }}>
-                            <li className="flex w-full items-center gap-2 p-2 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-950 cursor-pointer">
-
-                            <Button>
-                                <InboxIcon className="size-8 dark:text-white text-neutral-800"/>
-                            </Button>
-                                                        
-                            </li>
-                        </Link>
-                        
-                    </ul>
-
-                </nav>
-        </Container>
-    )
+                    return (
+                        <li key={item.href}>
+                            <Link
+                                href={item.href}
+                                aria-label={item.label}
+                                aria-current={active ? "page" : undefined}
+                                className={`relative flex items-center justify-center rounded-full p-2.5
+                                    transition-colors
+                                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring
+                                    ${active
+                                        ? "bg-brand-subtle text-brand"
+                                        : "text-content hover:bg-surface-2"
+                                    }`}
+                            >
+                                <Icon className="size-6" />
+                                {item.badge ? (
+                                    <span
+                                        className="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center
+                                            rounded-full bg-danger px-1 text-[10px] font-semibold text-white"
+                                        aria-hidden="true"
+                                    >
+                                        {item.badge}
+                                    </span>
+                                ) : null}
+                            </Link>
+                        </li>
+                    );
+                })}
+            </ul>
+        </nav>
+    );
 }

@@ -1,242 +1,520 @@
 'use client';
-import Image from "next/image";
-import Container from "../../../../../components/container";
-import Button from "../../../../../components/button";
-import CloseIcon from "../../../../../components/icons/close";
-import PlusIcon from "../../../../../components/icons/plus";
-import ListCommunities from "../../../../../components/communities/list-communities";
-import FilterIcon from "../../../../../components/icons/filter";
-import { useEffect, useState } from "react";
-import Modal from "../../../../../components/modal";
-import FormButtom from "../../../../../components/form-buttom";
-import LoadingSpinner from "../../../../../components/loading-spinner";
-import ArrowLeftIcon from "../../../../../components/icons/arrow-left";
-import ArrowRightIcon from "../../../../../components/icons/arrow-right";
-import ColorButton from "../../../../../components/color-button";
-import Toaster from "../../../../../components/toaster";
-import { get } from "@/api/services/request";
-import Skeleton from "../../../../../components/skeleton";
-import Sidebar from "../../../../../components/sidebar";
-import BorderButton from "../../../../../components/border-button";
-import EllipsisVerticalIcon from "../../../../../components/icons/ellipsis";
-import SearchIcon from "../../../../../components/icons/search";
-import Link from "next/link";
 
-export default function Home(){
-    useEffect(() => {
-        getCommunities();
-    }, []);
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import Image from "../../../../../components/remote-image";
+import Container from "../../../../../components/container";
+import Card from "../../../../../components/card";
+import Button from "../../../../../components/button";
+import ColorButton from "../../../../../components/color-button";
+import Modal from "../../../../../components/modal";
+import Input from "../../../../../components/input";
+import Textarea from "../../../../../components/textarea";
+import FormButtom from "../../../../../components/form-buttom";
+import Sidebar from "../../../../../components/sidebar";
+import Skeleton from "../../../../../components/skeleton";
+import Toaster from "../../../../../components/toaster";
+import ListCommunities, { type Community } from "../../../../../components/communities/list-communities";
+import SearchIcon from "../../../../../components/icons/search";
+import CloseIcon from "../../../../../components/icons/close";
+import PhotoIcon from "../../../../../components/icons/photo";
+import CommunityIcon from "../../../../../components/icons/community";
+import PlusIcon from "../../../../../components/icons/plus";
+import { AppContext } from "../layout";
+import { get, postFormData } from "@/api/services/request";
+import { suggestedCommunities } from "../../../../../mocks/suggestions";
+
+type Category = { id: number; name: string };
+type Tab = "all" | "mine";
+
+const GRID = "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4";
+
+type NewCommunityErrors = {
+    name?: string;
+    category_id?: string;
+    photo?: string;
+};
+
+export default function Home() {
+    const { myInfo } = useContext(AppContext);
+
+    const [communities, setCommunities] = useState<Community[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const [tab, setTab] = useState<Tab>("all");
+    const [search, setSearch] = useState("");
+    const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
+
     const [modalNewCommunity, setModalNewCommunity] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [communities, setCommunities] = useState<any[]>([]);
+    const [saving, setSaving] = useState(false);
+    const [newCommunity, setNewCommunity] = useState({
+        name: "",
+        category_id: "",
+        description: "",
+    });
+    const [newErrors, setNewErrors] = useState<NewCommunityErrors>({});
+    const [photo, setPhoto] = useState<File | null>(null);
+    const [preview, setPreview] = useState<string | null>(null);
+    const fileRef = useRef<HTMLInputElement>(null);
+
     const [toaster, setToaster] = useState({
-    show: false,
-    message: "",
+        show: false,
+        message: "",
+        status: "",
+        title: "Comunidades",
     });
 
-    async function getCommunities(){
+    useEffect(() => {
+        loadAll();
+    }, []);
+
+    async function loadAll() {
         setLoading(true);
-        try {
-            const response = await get("/social-media/community");
-            setCommunities(response.data);
-        } catch (error: any) {
-    
-            setToaster({ show: true, message: "Erro ao carregar comunidades" });
+
+        // get() engole o erro e devolve undefined
+        const [communitiesResponse, categoriesResponse] = await Promise.all([
+            get("/social-media/community"),
+            get("/category"),
+        ]);
+
+        if (!communitiesResponse) {
+            setToaster({
+                show: true,
+                title: "Comunidades",
+                message: "Não foi possível carregar as comunidades.",
+                status: "error",
+            });
         }
+
+        setCommunities(communitiesResponse?.data ?? []);
+        setCategories(categoriesResponse?.data ?? []);
         setLoading(false);
     }
 
-    const sugestedCommunities = [
-        {
-            id: 1,
-            name: "Comunity 1",
-            photo_path: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y2Fycm9zfGVufDB8fDB8fHww",
-            location: "Rio de Janeiro - RJ",
-            description: "Descricão da comunidade"
-        },
-        {
-            id: 2,
-            name: "Comunity 2",
-            photo_path: "https://media.istockphoto.com/id/2214123161/pt/foto/happy-family-preparing-for-a-summer-vacation-on-a-beachside-road.webp?a=1&b=1&s=612x612&w=0&k=20&c=h3fPxOURGHgHdueoaC4b6q34iLPySTvfL4UQeFOlkV4=",
-            location: "São Paulo - SP",
-            description: "Descricão da comunidade"
-        },{
-            id: 3,
-            name: "Comunity 3",
-            photo_path: "https://images.unsplash.com/photo-1567818668259-e66acac21610?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8ODJ8fGNhcnJvc3xlbnwwfHwwfHx8MA%3D%3D",
-            location: "Brasília - DF",
-            description: "Descricão da comunidade"
-        },
-    ]
+    const mine = useMemo(
+        () => communities.filter((community) => community.owner_id === myInfo?.id),
+        [communities, myInfo?.id]
+    );
 
-    return(
+    const filtered = useMemo(() => {
+        const base = tab === "mine" ? mine : communities;
+        const term = search.trim().toLowerCase();
+
+        return base.filter((community) => {
+            const matchesTerm =
+                term === "" || community.name?.toLowerCase().includes(term);
+            const matchesCategory =
+                categoryFilter === null || community.category_id === categoryFilter;
+
+            return matchesTerm && matchesCategory;
+        });
+    }, [communities, mine, tab, search, categoryFilter]);
+
+    function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (preview) URL.revokeObjectURL(preview);
+
+        setPhoto(file);
+        setPreview(URL.createObjectURL(file));
+        setNewErrors({ ...newErrors, photo: undefined });
+    }
+
+    function closeModal() {
+        setModalNewCommunity(false);
+        setNewErrors({});
+    }
+
+    async function handleCreate(e: React.FormEvent) {
+        e.preventDefault();
+
+        const errors: NewCommunityErrors = {};
+        if (newCommunity.name.trim() === "") errors.name = "Informe o nome da comunidade";
+        if (newCommunity.category_id === "") errors.category_id = "Escolha uma categoria";
+        // a API exige a imagem: 'photo' => 'required|image'
+        if (!photo) errors.photo = "Escolha uma imagem de capa";
+
+        setNewErrors(errors);
+        if (Object.keys(errors).length > 0) return;
+
+        setSaving(true);
+
+        const formData = new FormData();
+        formData.append("name", newCommunity.name);
+        formData.append("category_id", newCommunity.category_id);
+        formData.append("description", newCommunity.description);
+        if (photo) formData.append("photo", photo);
+
+        try {
+            const response = await postFormData("/social-media/community", formData);
+
+            if (response?.errors) {
+                const apiErrors: NewCommunityErrors = {};
+                Object.entries(response.errors).forEach(([field, messages]) => {
+                    apiErrors[field as keyof NewCommunityErrors] = Array.isArray(messages)
+                        ? String(messages[0])
+                        : String(messages);
+                });
+                setNewErrors(apiErrors);
+                setToaster({
+                    show: true,
+                    title: "Nova comunidade",
+                    message: "Revise os campos destacados.",
+                    status: "error",
+                });
+                return;
+            }
+
+            setToaster({
+                show: true,
+                title: "Nova comunidade",
+                message: "Comunidade criada com sucesso!",
+                status: "success",
+            });
+
+            setNewCommunity({ name: "", category_id: "", description: "" });
+            setPhoto(null);
+            setPreview(null);
+            if (fileRef.current) fileRef.current.value = "";
+            closeModal();
+            loadAll();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (error: any) {
+            setToaster({
+                show: true,
+                title: "Nova comunidade",
+                message:
+                    error?.response?.data?.message ??
+                    "Não foi possível criar a comunidade.",
+                status: "error",
+            });
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    const tabClass = (active: boolean) =>
+        `flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors cursor-pointer
+        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring
+        ${active ? "bg-brand-subtle text-brand" : "text-content-muted hover:bg-surface-2"}`;
+
+    const chipClass = (active: boolean) =>
+        `flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer
+        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring
+        ${active
+            ? "border-brand bg-brand-subtle text-brand"
+            : "border-line text-content-muted hover:bg-surface-2"}`;
+
+    return (
         <>
             <Sidebar />
-            <div className="flex flex-col sm:flex-row col-span-full sm:col-span-9 gap-4">
-                
-                <div className="w-full sm:w-[70%] flex flex-col">
 
-                    <div className="flex flex-col gap-2 p-4">
-                        <div>
+            <div className="flex flex-1 min-w-0 flex-col lg:flex-row gap-4">
+                <Container className="w-full lg:w-[72%] rounded-card min-w-0" padding="p-0">
 
-                            <h1 className="text-2xl font-semibold mb-4">Comunidades</h1>
+                    <div className="flex flex-col gap-4 border-b border-line p-4">
+                        <div className="flex flex-wrap items-baseline justify-between gap-2">
+                            <h1 className="text-2xl font-semibold">Comunidades</h1>
+                            <span className="text-sm text-content-muted">
+                                {loading
+                                    ? "Carregando..."
+                                    : `${communities.length} ${communities.length === 1 ? "comunidade" : "comunidades"}`}
+                            </span>
                         </div>
-                        <div className="flex flex-col gap-2">
 
-                            <div className="w-full flex flex-row gap-2 justify-end">
-
-                                <BorderButton
-                                    onClick={() => setModalNewCommunity(true)}
-                                >
-                                    
-                                    Criar comunidade
-                                </BorderButton>
-                                <ColorButton
-                                    onClick={() => setModalNewCommunity(true)}
-                                >
-                                    <SearchIcon className="size-5" />
-                                </ColorButton>
-                                
-                            </div>
-                            <div className="w-full flex flex-col sm:flex-row items-center gap-2 mt-2">
-
-                                <div className="flex flex-row items-center bg-neutral-800 hover:bg-neutral-900 text-xs font-semibold py-2 px-2 pl-2 pr-2 rounded-md cursor-pointer gap-2">
-                                    Automobilismo
-                                    <CloseIcon className="size-3" />
-                                </div>
-                            </div>
-                            
-                        </div>
-                    </div>
-                    <Container className="w-full h-full rounded-2xl" padding="p-0">
-                        <div className="flex flex-col gap-4 mb-4 flex-wrap">
-
-                            {loading && (
-                                <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 p-4">
-
-                                    <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
-                                    <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
-                                    <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
-                                    <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
-                                    <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
-                                    <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
-                                    <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
-                                    <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
-                                    <Skeleton width={"w-full"} rounded="3xl" className="aspect-[16/9]"/>
-
-                                </div>
-                            )}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4">
-                                {communities && (
-                                    
-                                    <ListCommunities 
-                                        communities={communities} 
-                                    />
-                                    
+                        {/* Busca real. Antes o botão de lupa abria o modal de
+                            criar comunidade e nada era filtrado. */}
+                        <div className="flex flex-col sm:flex-row gap-2">
+                            <div className="flex w-full items-center gap-2 rounded-full border border-line
+                                bg-surface-2 px-4 py-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand-ring">
+                                <SearchIcon className="size-5 shrink-0 text-content-muted" />
+                                <input
+                                    type="search"
+                                    aria-label="Buscar comunidades pelo nome"
+                                    placeholder="Buscar pelo nome..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="w-full bg-transparent text-sm text-content placeholder:text-content-subtle outline-none"
+                                />
+                                {search && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearch("")}
+                                        aria-label="Limpar busca"
+                                        className="rounded-full p-1 text-content-muted hover:bg-surface-3 hover:text-content
+                                            cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                                    >
+                                        <CloseIcon className="size-3" />
+                                    </button>
                                 )}
                             </div>
+
+                            <ColorButton
+                                onClick={() => setModalNewCommunity(true)}
+                                className="shrink-0 px-4 text-sm font-semibold"
+                            >
+                                <PlusIcon className="size-4 shrink-0" />
+                                Criar comunidade
+                            </ColorButton>
                         </div>
-                    </Container>
-                </div>
-                <Container className="w-full sm:w-[30%] rounded-2xl" padding="p-4">
-                    <h1 className="text-lg font-semibold mb-4">Comunidades sugeridas</h1>
-                    {sugestedCommunities && sugestedCommunities.map((community) => (
-                            
-                        <Link href={`/social-media/profile/${community?.name}`} key={community.id}>
-                            <div className="relative w-full flex flex-row gap-2 mb-2 overflow-hidden group justify-between items-center border-1 border-neutral-200 dark:border-neutral-800 rounded-2xl">
-                                <div className="flex flex-col items-center">
 
-                                    <Image
-                                        src={community?.photo_path ?? '/imgs/placeholder.png'}
-                                        alt="Foto de perfil"                            
-                                        className="w-full rounded-xl object-cover group-hover:scale-110 transition-all duration-300 ease-in-out"
-                                        width={50}
-                                        height={50}
-                                        unoptimized
-                                    />
-                                    <div className="absolute w-full h-auto bottom-0 left-0 flex flex-col bg-linear-to-t from-black via-black/70 to-transparent rounded-b-xl p-4">
-                                        <span className="text-sm font-semibold">{community?.name}</span>
-                                        <p className="w-full flex text-xs font-normal text-gray-300 text-wrap">{community?.description}</p>
-                                        <p className="text-xs font-normal text-gray-400">{community?.location}</p>
+                        <div role="tablist" aria-label="Listas de comunidades" className="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                role="tab"
+                                aria-selected={tab === "all"}
+                                onClick={() => setTab("all")}
+                                className={tabClass(tab === "all")}
+                            >
+                                <CommunityIcon className="size-4" />
+                                Todas
+                                <span className="text-xs opacity-80">{communities.length}</span>
+                            </button>
 
-                                    </div>
-                                </div>
-                                <Button onClick={() => setModalNewPhoto(true)} className="absolute right-2 top-2 text-sm text-semibold">
-                                    <EllipsisVerticalIcon className="size-3"/>
-                                </Button>
+                            <button
+                                type="button"
+                                role="tab"
+                                aria-selected={tab === "mine"}
+                                onClick={() => setTab("mine")}
+                                className={tabClass(tab === "mine")}
+                            >
+                                <PlusIcon className="size-4" />
+                                Criadas por mim
+                                <span className="text-xs opacity-80">{mine.length}</span>
+                            </button>
+                        </div>
+
+                        {/* Categorias vindas de GET /category, no lugar do chip
+                            "Automobilismo" fixo que não filtrava nada */}
+                        {categories.length > 0 && (
+                            <div className="flex flex-row flex-wrap gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setCategoryFilter(null)}
+                                    aria-pressed={categoryFilter === null}
+                                    className={chipClass(categoryFilter === null)}
+                                >
+                                    Todas as categorias
+                                </button>
+
+                                {categories.map((category) => {
+                                    const active = categoryFilter === category.id;
+
+                                    return (
+                                        <button
+                                            key={category.id}
+                                            type="button"
+                                            onClick={() => setCategoryFilter(active ? null : category.id)}
+                                            aria-pressed={active}
+                                            className={chipClass(active)}
+                                        >
+                                            {category.name}
+                                            {active && <CloseIcon className="size-3" />}
+                                        </button>
+                                    );
+                                })}
                             </div>
-                        </Link>
-                    ))}
+                        )}
+                    </div>
+
+                    <div className="p-4">
+                        {loading && (
+                            <div className={GRID}>
+                                {Array.from({ length: 6 }).map((_, index) => (
+                                    <Skeleton
+                                        key={index}
+                                        width="w-full"
+                                        rounded="card"
+                                        className="aspect-[16/9]"
+                                    />
+                                ))}
+                            </div>
+                        )}
+
+                        {!loading && filtered.length > 0 && (
+                            <div className={GRID}>
+                                <ListCommunities communities={filtered} />
+                            </div>
+                        )}
+
+                        {!loading && filtered.length === 0 && (
+                            <div className="flex flex-col items-center gap-3 py-12 text-center">
+                                <CommunityIcon className="size-10 text-content-subtle" />
+
+                                <h2 className="text-base font-semibold">
+                                    {search || categoryFilter !== null
+                                        ? "Nenhum resultado"
+                                        : tab === "mine"
+                                            ? "Você ainda não criou comunidades"
+                                            : "Nenhuma comunidade por aqui"}
+                                </h2>
+
+                                <p className="max-w-sm text-sm text-content-muted">
+                                    {search || categoryFilter !== null
+                                        ? "Tente outro termo ou remova os filtros."
+                                        : "Crie a primeira e convide as pessoas para participar."}
+                                </p>
+
+                                {!search && categoryFilter === null && (
+                                    <ColorButton
+                                        onClick={() => setModalNewCommunity(true)}
+                                        className="px-4 text-sm font-semibold"
+                                    >
+                                        <PlusIcon className="size-4" />
+                                        Criar comunidade
+                                    </ColorButton>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </Container>
 
+                <aside aria-label="Sugestões" className="w-full flex flex-col lg:w-[28%] gap-4">
+                    <Container className="rounded-card" padding="p-4">
+                        <h2 className="text-lg font-semibold mb-4">Comunidades sugeridas</h2>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
+                            {suggestedCommunities.map((community) => (
+                                <Link
+                                    href={`/social-media/communities/${community.id}`}
+                                    key={community.id}
+                                    className="rounded-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                                >
+                                    <Card className="flex flex-row items-center gap-3 p-3 transition-shadow hover:shadow-md">
+                                        <Image
+                                            src={community.photo_path}
+                                            alt=""
+                                            width={48}
+                                            height={48}
+                                            sizes="48px"
+                                            className="w-12 aspect-square rounded-full object-cover shrink-0"
+                                        />
+                                        <div className="flex flex-col min-w-0">
+                                            <h3 className="text-sm font-semibold truncate">{community.name}</h3>
+                                            <p className="text-xs text-content-muted truncate">
+                                                {community.description}
+                                            </p>
+                                        </div>
+                                    </Card>
+                                </Link>
+                            ))}
+                        </div>
+                    </Container>
+                </aside>
             </div>
-            <Modal 
-                isOpen={modalNewCommunity} 
-                onClose={() => {
-                setModalNewCommunity(false);
-                }} 
+
+            <Modal
+                isOpen={modalNewCommunity}
+                onClose={closeModal}
                 title="Nova comunidade"
-                width="sm:w-[800px]"
+                width="sm:w-[720px]"
             >
-                <div className="w-full flex flex-row gap-4">
-                    <div className="w-[40%] flex flex-col gap-4 items-center justify-center">
-                        <Image
-                            src="/imgs/bmw.jpg"
-                            alt="Foto de perfil"
-                            className="rounded-2xl w-[200px] mr-2 hover:opacity-90"
-                            width={200}
-                            height={200}
-                            priority
-                        />
+                <form onSubmit={handleCreate} noValidate className="flex flex-col sm:flex-row gap-6">
+
+                    <div className="w-full sm:w-[40%] flex flex-col items-center gap-3">
+                        {preview ? (
+                            <Image
+                                src={preview}
+                                alt="Pré-visualização da capa"
+                                width={220}
+                                height={220}
+                                className="w-full aspect-square rounded-card object-cover"
+                            />
+                        ) : (
+                            <div className="flex w-full aspect-square flex-col items-center justify-center gap-2
+                                rounded-card border border-dashed border-line text-content-muted">
+                                <PhotoIcon className="size-8" />
+                                <span className="text-xs">Sem capa</span>
+                            </div>
+                        )}
+
+                        <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
+                            {photo ? "Trocar imagem" : "Escolher imagem"}
+                        </Button>
+
+                        {newErrors.photo && (
+                            <span role="alert" className="text-xs text-danger">
+                                {newErrors.photo}
+                            </span>
+                        )}
+
                         <input
+                            ref={fileRef}
                             type="file"
                             accept="image/*"
-                            style={{ display: "none" }}
-                            onChange={() => {}}
+                            className="sr-only"
+                            onChange={handleFileChange}
+                        />
+                    </div>
+
+                    <div className="w-full sm:w-[60%] flex flex-col gap-4">
+                        <Input
+                            label="Nome"
+                            type="text"
+                            placeholder="Digite o nome da comunidade"
+                            value={newCommunity.name}
+                            error={newErrors.name}
+                            onChange={(e) => {
+                                setNewCommunity({ ...newCommunity, name: e.target.value });
+                                setNewErrors({ ...newErrors, name: undefined });
+                            }}
                         />
 
-                    </div>
-                    <div className="w-[60%] flex flex-col gap-4">
-                        <div className="w-full flex flex-col">
-                            <label className="font-semibold text-xs mb-2">Nome</label>
-                            <input className="w-full text-sm text-gray-700 dark:text-white p-3 bg-white dark:bg-neutral-800 focus:outline-neutral-400 rounded-sm" type="text" placeholder="Digite o nome da comunidade"></input>
-                        </div>
-                        <div className="w-full flex flex-col">
-                            <label className="font-semibold text-xs mb-2">Categoria</label>
-                            <select className="w-full text-sm text-gray-700 dark:text-white p-3 bg-white dark:bg-neutral-800 focus:outline-neutral-400 rounded-sm">
+                        <div className="flex flex-col w-full">
+                            <label htmlFor="community-category" className="font-semibold text-xs mb-2">
+                                Categoria
+                            </label>
+                            <select
+                                id="community-category"
+                                value={newCommunity.category_id}
+                                aria-invalid={newErrors.category_id ? true : undefined}
+                                onChange={(e) => {
+                                    setNewCommunity({ ...newCommunity, category_id: e.target.value });
+                                    setNewErrors({ ...newErrors, category_id: undefined });
+                                }}
+                                className={`w-full text-sm p-3 rounded-field bg-surface text-content
+                                    border ${newErrors.category_id ? "border-danger" : "border-line"}
+                                    focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-brand-ring`}
+                            >
                                 <option value="">Selecione</option>
-                                <option value="1">Automobilismo</option>
-                                <option value="2">Programação</option>
-                                <option value="3">Games</option>
-                                <option value="4">Música</option>
-                                <option value="5">Filmes</option>
+                                {categories.map((category) => (
+                                    <option key={category.id} value={category.id}>
+                                        {category.name}
+                                    </option>
+                                ))}
                             </select>
+                            {newErrors.category_id && (
+                                <span role="alert" className="text-xs text-danger mt-1">
+                                    {newErrors.category_id}
+                                </span>
+                            )}
                         </div>
 
-                        <div className="w-full flex flex-col">
-                            <label className="font-semibold text-xs mb-2">Descrição</label>
-                            <textarea className="w-full text-sm text-gray-700 dark:text-white p-3 bg-white dark:bg-neutral-800 focus:outline-neutral-400 rounded-sm cols-1 rows-4" placeholder="Digite uma descrição"></textarea>
+                        <Textarea
+                            label="Descrição"
+                            rows={4}
+                            maxLength={280}
+                            showCount
+                            placeholder="Do que se trata a comunidade?"
+                            value={newCommunity.description}
+                            onChange={(e) =>
+                                setNewCommunity({ ...newCommunity, description: e.target.value })
+                            }
+                        />
 
-                        </div>
-                        <div className="w-full flex flex-col items-center">
-                            <div className="flex flex-row gap-2 items-center">
-
-                                <FormButtom label="Criar" type="submit" onClick={() => alert('Criar comunidade')}/>
-                                
-                                {loading && <LoadingSpinner />}
-                            </div>
-
+                        <div className="flex flex-row justify-end gap-2">
+                            <Button variant="ghost" size="md" onClick={closeModal}>
+                                Cancelar
+                            </Button>
+                            <FormButtom label="Criar" type="submit" loading={saving} />
                         </div>
                     </div>
-                </div>
+                </form>
             </Modal>
-            
-            {toaster.show && (
-            <Toaster
-                toaster={toaster}
-                setToaster={setToaster}
-            />
-            )}
+
+            {toaster.show && <Toaster toaster={toaster} setToaster={setToaster} />}
         </>
-    )
+    );
 }

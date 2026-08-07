@@ -1,148 +1,233 @@
 'use client';
 
-import { useContext, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
+import Image from "./remote-image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import SearchIcon from "./icons/search";
 import CloseIcon from "./icons/close";
 import MenuIcon from "./icons/menu";
 import ThemeToggle from "./theme-toggle";
-import MessageIcon from "./icons/message";
 import InboxIcon from "./icons/inbox";
 import { AppContext } from "@/app/(pages)/social-media/layout";
-import Image from "next/image";
 import Skeleton from "./skeleton";
 import Button from "./button";
 import RingImage from "./ring-image";
 import Submenu from "./submenu";
-import PhotoIcon from "./icons/photo";
-import UsersIcon from "./icons/users";
-import SettingsIcon from "./icons/settings";
-import ArrowRightIcon from "./icons/arrow-right";
-import Link from "next/link";
+import { accountNavItems, primaryNavItems, isNavItemActive } from "./nav-items";
 
 export default function Header() {
-
-    const [open, setOpen] = useState(false);
     const context = useContext(AppContext);
-
-    const submenuItems = [
-        { label: 'Meu perfil', link: "/social-media/profile", icon: <UsersIcon /> },
-        { label: 'Preferências', link: "/social-media/settings", icon: <SettingsIcon /> },
-        { label: 'Sair', link: "", icon: <ArrowRightIcon /> },
-    ]
-
+    const pathname = usePathname();
     const { myInfo, openMessages, setOpenMessages } = context;
 
+    const [accountOpen, setAccountOpen] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
+
+    const accountRef = useRef<HTMLDivElement>(null);
+    const mobileRef = useRef<HTMLDivElement>(null);
+
+    // Fecha os menus ao clicar fora ou pressionar Esc.
+    useEffect(() => {
+        if (!accountOpen && !mobileOpen) return;
+
+        function handlePointerDown(event: MouseEvent) {
+            const target = event.target as Node;
+            if (accountRef.current && !accountRef.current.contains(target)) {
+                setAccountOpen(false);
+            }
+            if (mobileRef.current && !mobileRef.current.contains(target)) {
+                setMobileOpen(false);
+            }
+        }
+
+        function handleKeyDown(event: KeyboardEvent) {
+            if (event.key === "Escape") {
+                setAccountOpen(false);
+                setMobileOpen(false);
+            }
+        }
+
+        document.addEventListener("mousedown", handlePointerDown);
+        document.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            document.removeEventListener("mousedown", handlePointerDown);
+            document.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [accountOpen, mobileOpen]);
 
     const imageUser = myInfo?.photo ?? '/imgs/placeholder.png';
 
     return (
-        <header className="flex w-full bg-white dark:bg-neutral-900 border-b border-neutral-400/30 dark:border-neutral-800 justify-center">
-            <nav className="w-full max-w-7xl px-6 py-2 flex items-center justify-between">
+        <header className="relative flex w-full justify-center border-b border-line bg-surface">
+            <nav className="flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-2 lg:px-6">
 
-                <div className="w-1/3 text-xl font-bold dark:text-white text-neutral-800">
-                    <Link href="/social-media">
-
-                        <Image 
-                            src="/imgs/logo_social_media.png" 
-                            alt="Logo" 
-                            width={100} 
-                            height={100} 
+                <div className="flex shrink-0 items-center">
+                    <Link
+                        href="/social-media"
+                        aria-label="Ir para a página inicial"
+                        className="rounded-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                    >
+                        <Image
+                            src="/imgs/logo_social_media.png"
+                            alt="Social Media"
+                            width={100}
+                            height={100}
                             className="w-[90px] h-auto hidden dark:block"
+                            priority
                         />
-
-                        <Image 
-                            src="/imgs/logo_social_media_blank.png" 
-                            alt="Logo" 
-                            width={100} 
-                            height={100} 
+                        <Image
+                            src="/imgs/logo_social_media_blank.png"
+                            alt="Social Media"
+                            width={100}
+                            height={100}
                             className="w-[90px] h-auto block dark:hidden"
+                            priority
                         />
                     </Link>
                 </div>
 
-                <div className="w-1/3 hidden md:flex bg-neutral-100 dark:bg-neutral-800 p-2 rounded-full border border-neutral-200 dark:border-neutral-700 px-5 pl-5">
-                    <SearchIcon className="dark:text-white" />
-                    <input className="ml-2 w-full focus:outline-none w-full text-gray-600 text-sm dark:text-white rounded-sm ml-2 pr-4" type="text" placeholder="Buscar.."></input>
+                <div className="hidden md:flex flex-1 max-w-md items-center gap-2 rounded-full border border-line bg-surface-2 px-5 py-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand-ring">
+                    <SearchIcon className="size-5 shrink-0 text-content-muted" />
+                    <input
+                        type="search"
+                        aria-label="Buscar"
+                        placeholder="Buscar.."
+                        className="w-full bg-transparent text-sm text-content placeholder:text-content-subtle outline-none"
+                    />
                 </div>
 
-                <div className="hidden md:flex w-1/3 justify-end items-center gap-4">
+                <div className="hidden md:flex shrink-0 items-center gap-4">
                     <div className="flex flex-row gap-2">
                         <Button
-                            onClick={() => { setOpenMessages(!openMessages) }}
+                            onClick={() => setOpenMessages(!openMessages)}
+                            aria-label="Mensagens"
+                            aria-expanded={openMessages}
                         >
-                            <InboxIcon className="size-6 dark:text-white" />
+                            <InboxIcon className="size-6" />
                         </Button>
                         <ThemeToggle />
                     </div>
 
-                    {myInfo && (
-                        <div className="flex flex-row items-center gap-2">
-                            {/* <span className="text-sm font-semibold text-gray-600 dark:text-white">{`Olá, ${myInfo?.name}`}</span> */}
-                            <ul>
-                                <li className="cursor-pointer" onClick={() => setOpen(!open)}>
+                    {myInfo ? (
+                        <div className="relative" ref={accountRef}>
+                            <button
+                                type="button"
+                                onClick={() => setAccountOpen(!accountOpen)}
+                                aria-label="Abrir menu da conta"
+                                aria-expanded={accountOpen}
+                                aria-haspopup="menu"
+                                className="flex rounded-full cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                            >
+                                <RingImage>
+                                    <Image
+                                        src={imageUser}
+                                        alt=""
+                                        className="rounded-full w-[45px] aspect-square object-cover"
+                                        width={45}
+                                        height={45}
+                                        sizes="45px"
+                                    />
+                                </RingImage>
+                            </button>
 
-                                    <RingImage>
+                            {accountOpen && (
+                                <div
+                                    role="menu"
+                                    className="absolute right-0 top-full mt-3 w-[280px] rounded-card border border-line
+                                        bg-surface p-3 text-content shadow-lg z-50"
+                                >
+                                    <div className="flex flex-row items-center gap-3 border-b border-line p-2 pb-3 mb-2">
                                         <Image
                                             src={imageUser}
-                                            alt="Foto de perfil"
-                                            className="rounded-full w-[45px] aspect-[1/1]"
-                                            width={50}
-                                            height={50}
+                                            alt=""
+                                            className="rounded-full w-10 aspect-square object-cover"
+                                            width={40}
+                                            height={40}
+                                            sizes="40px"
                                         />
-                                    </RingImage>
-                                </li>
-                                {open && (
-                                    <div className="w-full sm:w-[300px] absolute right-0 mt-4 dark:bg-neutral-900 dark:text-white bg-white text-neutral-800 rounded-lg shadow-md p-4 z-50">
-
-                                        <div className="flex flex-row gap-2 p-4 border-b dark:border-neutral-700 border-neutral-200 mb-2">
-                                            <label>teste</label>
-                                        </div>
-                                        <ul>
-                                            <Submenu items={submenuItems} />
-
-                                        </ul>
+                                        <span className="text-sm font-semibold truncate">{myInfo.name}</span>
                                     </div>
-                                )}
-                            </ul>
+                                    <ul className="list-none">
+                                        <Submenu
+                                            items={accountNavItems}
+                                            onNavigate={() => setAccountOpen(false)}
+                                        />
+                                    </ul>
+                                </div>
+                            )}
                         </div>
-                    )}
-
-                    {!myInfo && (
-                        <div className="flex flex-row items-center gap-2">
-                            {/* <Skeleton rounded="sm" height={"h-[25px]"} width={"w-[120px]"} /> */}
-                            <Skeleton height={"h-[55px]"} width={"w-[55px]"} rounded="full" className="aspect-[1/1]" />
-                        </div>
-
+                    ) : (
+                        <Skeleton height="h-[45px]" width="w-[45px]" rounded="full" className="aspect-square" />
                     )}
                 </div>
 
-                <Button
-                    className="md:hidden p-2"
-                    onClick={() => setMobileOpen(!mobileOpen)}
-                >
-                    {mobileOpen ? <CloseIcon className="dark:text-white cursor-pointer size-6" /> : <MenuIcon className="dark:text-white cursor-pointer" />}
-                </Button>
+                <div className="md:hidden" ref={mobileRef}>
+                    <Button
+                        onClick={() => setMobileOpen(!mobileOpen)}
+                        aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
+                        aria-expanded={mobileOpen}
+                    >
+                        {mobileOpen ? <CloseIcon className="size-6" /> : <MenuIcon className="size-6" />}
+                    </Button>
 
-                {mobileOpen && (
-                    <div className="absolute top-14 left-0 w-full dark:bg-neutral-900 bg-white shadow-md flex flex-col p-4 gap-4 md:hidden z-100">
-                        <div className="flex w-full bg-neutral-100 dark:bg-neutral-700 p-2 rounded-full border border-neutral-600 px-5 pl-5">
-                            <SearchIcon className="dark:text-white" />
-                            <input className="ml-2 w-full focus:outline-none w-full text-gray-600 dark:text-white rounded-sm ml-2 pr-4" type="text" placeholder="Buscar.."></input>
-                        </div>
-                        <div className="flex flex-col w-full">
+                    {mobileOpen && (
+                        // top-full ancora no header — antes era top-14 fixo,
+                        // que quebrava se a altura do header mudasse.
+                        <div className="absolute left-0 top-full w-full border-b border-line bg-surface p-4 shadow-lg z-50">
+                            <div className="flex w-full items-center gap-2 rounded-full border border-line bg-surface-2 px-5 py-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand-ring">
+                                <SearchIcon className="size-5 shrink-0 text-content-muted" />
+                                <input
+                                    type="search"
+                                    aria-label="Buscar"
+                                    placeholder="Buscar.."
+                                    className="w-full bg-transparent text-sm text-content placeholder:text-content-subtle outline-none"
+                                />
+                            </div>
 
-                            <div className="flex w-full justify-end p-2 border-b border-neutral-700">
+                            <div className="mt-4 flex w-full justify-end border-b border-line pb-3">
                                 <ThemeToggle />
                             </div>
-                            <ul className="text-gray-800 dark:text-white mt-2">
-                                <Submenu items={submenuItems} />
+
+                            <ul className="mt-3 list-none">
+                                {primaryNavItems.map((item) => {
+                                    const Icon = item.icon;
+                                    const active = isNavItemActive(item.href, pathname);
+
+                                    return (
+                                        <li key={item.href}>
+                                            <Link
+                                                href={item.href}
+                                                aria-current={active ? "page" : undefined}
+                                                onClick={() => setMobileOpen(false)}
+                                                className={`flex w-full items-center gap-3 rounded-field p-2 mb-1 transition-colors
+                                                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring
+                                                    ${active
+                                                        ? "bg-brand-subtle text-brand font-semibold"
+                                                        : "text-content hover:bg-surface-2"
+                                                    }`}
+                                            >
+                                                <span className="flex items-center justify-center rounded-full bg-surface-3 p-2">
+                                                    <Icon className="size-4" />
+                                                </span>
+                                                <span className="text-sm font-semibold">{item.label}</span>
+                                            </Link>
+                                        </li>
+                                    );
+                                })}
+
+                                <li aria-hidden="true" className="my-2 border-t border-line" />
+
+                                <Submenu
+                                    items={accountNavItems}
+                                    onNavigate={() => setMobileOpen(false)}
+                                />
                             </ul>
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
             </nav>
         </header>
-
     );
 }

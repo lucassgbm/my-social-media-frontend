@@ -1,17 +1,35 @@
+import { ReactNode } from "react";
+import Button from "./button";
 
-type ButtonProps = {
-  children: React.ReactNode;
-  onClick?: () => void;
-  className?: string,
+/**
+ * Wrapper de compatibilidade sobre <Button variant="outline">.
+ * Em código novo prefira usar Button diretamente.
+ */
+type BorderButtonProps = {
+  children: ReactNode;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  className?: string;
+  disabled?: boolean;
+  "aria-label"?: string;
 };
 
-export default function BorderButton({ className, onClick, children }: ButtonProps) {
-
+export default function BorderButton({
+  className = "",
+  onClick,
+  children,
+  disabled,
+  ...rest
+}: BorderButtonProps) {
   return (
-    <button className={` px-3 py-2 rounded-full text-green-500 border-2 border-green-500 text-xs hover:opacity-80 transition cursor-pointer ${className}`} onClick={onClick}>
-      
-        <div>{children}</div>
-    </button>
-
+    <Button
+      variant="outline"
+      size="sm"
+      disabled={disabled}
+      onClick={onClick}
+      className={className}
+      {...rest}
+    >
+      {children}
+    </Button>
   );
 }

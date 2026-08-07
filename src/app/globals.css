@@ -1,29 +1,76 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Design tokens.
+ * O tema é controlado exclusivamente pela classe .dark (next-themes com
+ * attribute="class"). Não usar @media (prefers-color-scheme) aqui: isso criaria
+ * uma segunda fonte de verdade e quebraria a escolha manual do usuário.
+ */
+@theme {
+  /* superfícies */
+  --color-surface: #ffffff;
+  --color-surface-2: #f5f5f5;
+  --color-surface-3: #e9e9e9;
+  --color-canvas: #f5f5f5;
+
+  /* texto */
+  --color-content: #171717;
+  --color-content-muted: #57606a;
+  --color-content-subtle: #6b7280;
+  --color-on-brand: #0a0a0a;
+
+  /* bordas */
+  --color-line: #e0e0e0;
+  --color-line-strong: #c9c9c9;
+
+  /* marca */
+  --color-brand: #16a34a;
+  --color-brand-hover: #15803d;
+  --color-brand-subtle: #dcfce7;
+  --color-brand-ring: #22c55e;
+
+  /* feedback */
+  --color-danger: #dc2626;
+  --color-success: #16a34a;
+
+  /* raios */
+  --radius-field: 0.375rem;
+  --radius-card: 0.75rem;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  /* --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono); */
-}
+.dark {
+  --color-surface: #171717;
+  --color-surface-2: #262626;
+  --color-surface-3: #333333;
+  --color-canvas: #0a0a0a;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-content: #ededed;
+  --color-content-muted: #a3a3a3;
+  --color-content-subtle: #8b8b8b;
+  --color-on-brand: #0a0a0a;
+
+  --color-line: #333333;
+  --color-line-strong: #454545;
+
+  --color-brand: #22c55e;
+  --color-brand-hover: #4ade80;
+  --color-brand-subtle: #14532d;
+  --color-brand-ring: #22c55e;
+
+  --color-danger: #ef4444;
+  --color-success: #22c55e;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  /* font-family: Arial, Helvetica, sans-serif; */
+  background: var(--color-canvas);
+  color: var(--color-content);
+}
+
+/* Indicador de foco padrão consistente em toda a aplicação */
+:focus-visible {
+  outline: 2px solid var(--color-brand-ring);
+  outline-offset: 2px;
 }
 
 /* Oculta scrollbar no Chrome, Safari e Edge */

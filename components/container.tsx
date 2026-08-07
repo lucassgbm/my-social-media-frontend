@@ -1,23 +1,31 @@
 import { ReactNode } from "react";
+
 interface ContainerProps {
     className?: string;
     children?: ReactNode;
     transparent?: boolean;
     padding?: string;
+    /** Elemento HTML renderizado (ex.: "section", "aside"). Padrão: div. */
+    as?: "div" | "section" | "aside" | "article";
 }
 
-export default function Container({ className, children, padding, transparent }: ContainerProps)
-{
+/** Superfície de nível 1 — o bloco padrão de conteúdo da aplicação. */
+export default function Container({
+    className = "",
+    children,
+    padding,
+    transparent,
+    as: Tag = "div",
+}: ContainerProps) {
     return (
-        <div 
+        <Tag
             className={`
-            ${transparent ? 'bg-transparent' : 'dark:bg-neutral-900 dark:shadow-neutral-md bg-white shadow-md border-1 border-neutral-400/30 dark:border-neutral-700/30'}
-            dark:text-white
-            text-gray 
-            ${padding ?? 'p-4'}
+            ${transparent ? "bg-transparent" : "bg-surface border border-line shadow-sm"}
+            text-content
+            ${padding ?? "p-4"}
             ${className}`}
-            >
+        >
             {children}
-        </div>
-    )
+        </Tag>
+    );
 }

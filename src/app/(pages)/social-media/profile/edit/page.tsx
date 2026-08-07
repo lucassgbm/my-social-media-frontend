@@ -3,7 +3,7 @@
 // @ts-expect-error missing types
 import { Splide, SplideSlide } from "@splidejs/react-splide";
 import '@splidejs/react-splide/css';
-import Image from "next/image";
+import Image from "../../../../../../components/remote-image";
 import Container from "../../../../../../components/container";
 import { useContext, useState } from "react";
 import { AppContext } from "../../layout";
@@ -44,7 +44,7 @@ export default function Home(){
     return(
         <>
 
-            <div className="col-span-full sm:col-span-8 gap-4">
+            <div className="flex-1 min-w-0">
                 <Container className="h-full " padding="p-0">
                     <div className="flex flex-col gap-4 mb-4 flex-wrap">
                         <div className="flex flex-col gap-2 border-b border-neutral-200 dark:border-neutral-800 p-4">

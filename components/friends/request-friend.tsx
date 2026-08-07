@@ -1,16 +1,15 @@
-import Image from "next/image";
-import MessageIcon from "../icons/message";
-import EllipsisVerticalIcon from "../icons/ellipsis";
+import Image from "../remote-image";
 import Button from "../button";
 import RingImage from "../ring-image";
-import { JSX } from "react";
 import Link from "next/link";
 import CheckIcon from "../icons/check";
 import CloseIcon from "../icons/close";
 
 interface FriendsProps {
     friends: Friend[];
-    acceptRequest: (id: number) => void
+    acceptRequest: (id: number) => void;
+    declineRequest?: (id: number) => void;
+    pendingId?: number | null;
 }
 
 interface Friend {
@@ -18,41 +17,58 @@ interface Friend {
     name: string;
     photo: string | null;
 }
-export default function RequestFriend({ acceptRequest, friends }: FriendsProps) {
+
+export default function RequestFriend({
+    acceptRequest,
+    declineRequest,
+    friends,
+    pendingId,
+}: FriendsProps) {
     return (
         <>
             {friends.map((friend: Friend) => (
-                
-                <div className="bg-neutral-100 bg-neutral-950/40 h-[auto] text-center rounded-2xl p-4 cursor-pointer" key={friend.id}>
-                    <div className="w-full flex flex-col gap-2 justify-center items-center">
-            
-                        <Link href={`/social-media/profile/${friend.id}`} key={friend.id}>
-                            <RingImage className="cursor-pointer">
-                                <Image
-                                    src={friend.photo ?? '/imgs/placeholder.png'}
-                                    alt="Foto de perfil"
-                                    className="rounded-full w-[100px] hover:opacity-90 aspect-[1/1]"
-                                    width={120}
-                                    height={120}
-                                    unoptimized
-                                    />
-                            </RingImage>
-                        </Link>
+                <div
+                    className="flex flex-col items-center gap-2 rounded-card border border-line
+                        bg-surface-2 p-4 text-center"
+                    key={friend.id}
+                >
+                    <Link
+                        href={`/social-media/user/${friend.name}`}
+                        className="rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                    >
+                        <RingImage className="cursor-pointer w-[88px]">
+                            <Image
+                                src={friend.photo ?? '/imgs/placeholder.png'}
+                                alt=""
+                                className="rounded-full w-full aspect-square object-cover hover:opacity-90"
+                                width={88}
+                                height={88}
+                                sizes="88px"
+                            />
+                        </RingImage>
+                    </Link>
 
-                        <label className="w-[full] flex text-sm font-semibold justify-start">{friend.name}</label>
-                        <div className="flex flex-row justify-between gap-2">
-                            <Button onClick={() => acceptRequest(friend.id)}>
-                                <CheckIcon />
-                            </Button>
-                            <Button onClick={() => {}}>
-                                <CloseIcon />
-                            </Button>
-                            
-                        </div>
+                    <span className="text-sm font-semibold truncate w-full">{friend.name}</span>
+
+                    <div className="flex flex-row justify-center gap-2">
+                        <Button
+                            variant="primary"
+                            onClick={() => acceptRequest(friend.id)}
+                            disabled={pendingId === friend.id}
+                            aria-label={`Aceitar solicitação de ${friend.name}`}
+                        >
+                            <CheckIcon className="size-4" />
+                        </Button>
+                        <Button
+                            onClick={() => declineRequest?.(friend.id)}
+                            disabled={pendingId === friend.id}
+                            aria-label={`Recusar solicitação de ${friend.name}`}
+                        >
+                            <CloseIcon className="size-4" />
+                        </Button>
                     </div>
                 </div>
             ))}
-            
         </>
     );
 }

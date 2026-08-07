@@ -1,211 +1,280 @@
 'use client';
 
-import Container from "../../../../../components/container";
-import ListFriends from "../../../../../components/friends/list-friends";
-import PlusIcon from "../../../../../components/icons/plus";
-import ColorButton from "../../../../../components/color-button";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { get, post } from "@/api/services/request";
-import RequestFriend from "../../../../../components/friends/request-friend";
-import { request } from "http";
-import Toaster from "../../../../../components/toaster";
+import Container from "../../../../../components/container";
 import Sidebar from "../../../../../components/sidebar";
-import Image from "next/image";
-import Link from "next/link";
 import CardUser from "../../../../../components/users/card-user";
-import Modal from "../../../../../components/modal";
-import BorderButton from "../../../../../components/border-button";
-import SearchIcon from "../../../../../components/icons/search";
+import RequestFriend from "../../../../../components/friends/request-friend";
+import Toaster from "../../../../../components/toaster";
 import Skeleton from "../../../../../components/skeleton";
+import SearchIcon from "../../../../../components/icons/search";
 import CloseIcon from "../../../../../components/icons/close";
+import UsersIcon from "../../../../../components/icons/users";
+import InboxIcon from "../../../../../components/icons/inbox";
+import { suggestedFriends } from "../../../../../mocks/suggestions";
+
+type Person = {
+    id: number;
+    name: string;
+    photo?: string | null;
+    autodescription?: string | null;
+};
+
+type Tab = "friends" | "requests";
+
+const GRID = "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4";
 
 export default function Home() {
+    const [tab, setTab] = useState<Tab>("friends");
+    const [search, setSearch] = useState("");
 
-    useEffect(() => {
-        getfriends();
-    }, []);
-    const [modalNewCommunity, setModalNewCommunity] = useState(false);
-    const [loading, setLoading] = useState(false);
-    // const [friends, setfriends] = useState<any[]>([]);
+    const [friends, setFriends] = useState<Person[]>([]);
+    const [requests, setRequests] = useState<Person[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [acceptingId, setAcceptingId] = useState<number | null>(null);
+
     const [toaster, setToaster] = useState({
-    show: false,
-    message: "",
+        show: false,
+        message: "",
+        title: "Amigos",
+        status: "",
     });
 
-    async function getfriends(){
+    useEffect(() => {
+        loadAll();
+    }, []);
+
+    async function loadAll() {
         setLoading(true);
-        try {
-            const response = await get("/social-media/community");
-            // setfriends(response.data);
-        } catch (error: any) {
-    
-            setToaster({ show: true, message: "Erro ao carregar amigos" });
+
+        // get() engole o erro e devolve undefined — por isso o fallback [] aqui
+        const [friendsResponse, requestsResponse] = await Promise.all([
+            get("/social-media/friends"),
+            get("/social-media/friends/requests"),
+        ]);
+
+        if (!friendsResponse || !requestsResponse) {
+            setToaster({
+                show: true,
+                title: "Amigos",
+                message: "Não foi possível carregar a sua lista.",
+                status: "error",
+            });
         }
+
+        setFriends(friendsResponse?.data ?? []);
+        setRequests(requestsResponse?.data ?? []);
         setLoading(false);
     }
 
-    const friends = [
-        {
-            id: 1,
-            name: "João",
-            title: "Estudante",
-            photo_path: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80",
-            location: "Rio de Janeiro - RJ"
-        },
-        {
-            id: 2,
-            name: "Maria",
-            title: "Maquiadora",
-            photo_path: "https://images.unsplash.com/photo-1769097137026-c482044ca0fb?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDE5fHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
-            location: "São Paulo - SP"
-        },
-        {
-            id: 3,
-            name: "Pedro",
-            title: "Desenvolvedor Full Stack",
-            photo_path: "https://images.unsplash.com/photo-1770191954591-952ab5c63e68?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDkyfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
-            location: "Curitiba - PR"
-        },
-        {
-            id: 4,
-            name: "Ana",
-            title: "Dentista",
-            photo_path: "https://images.unsplash.com/photo-1770576568718-6747e3d85de8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDMzfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
-            location: "Belo Horizonte - MG"
-        },
-    ]
+    async function acceptRequest(userId: number) {
+        setAcceptingId(userId);
 
-    const sugestedFriends = [
-        {
-            id: 1,
-            name: "João",
-            title: "Estudante",
-            photo_path: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80",
-            location: "Rio de Janeiro - RJ"
-        },
-        {
-            id: 2,
-            name: "Maria",
-            title: "Maquiadora",
-            photo_path: "https://images.unsplash.com/photo-1769097137026-c482044ca0fb?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDE5fHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
-            location: "São Paulo - SP"
-        },
-        {
-            id: 3,
-            name: "Pedro",
-            title: "Desenvolvedor Full Stack",
-            photo_path: "https://images.unsplash.com/photo-1770191954591-952ab5c63e68?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDkyfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
-            location: "Curitiba - PR"
-        },
-        {
-            id: 4,
-            name: "Ana",
-            title: "Dentista",
-            photo_path: "https://images.unsplash.com/photo-1770576568718-6747e3d85de8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDMzfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
-            location: "Belo Horizonte - MG"
-        },
-    ]
+        const response = await post("/social-media/friends/accept", { user_id: userId });
 
-    return(
+        if (!response) {
+            setToaster({
+                show: true,
+                title: "Amigos",
+                message: "Não foi possível aceitar a solicitação.",
+                status: "error",
+            });
+            setAcceptingId(null);
+            return;
+        }
+
+        const accepted = requests.find((person) => person.id === userId);
+
+        setRequests((current) => current.filter((person) => person.id !== userId));
+        if (accepted) setFriends((current) => [accepted, ...current]);
+
+        setToaster({
+            show: true,
+            title: "Amigos",
+            message: `Agora vocês são amigos${accepted ? `, ${accepted.name}` : ""}!`,
+            status: "success",
+        });
+        setAcceptingId(null);
+    }
+
+    function declineRequest(userId: number) {
+        // Sem endpoint de recusa na API ainda: some da lista só nesta sessão.
+        setRequests((current) => current.filter((person) => person.id !== userId));
+    }
+
+    const list = tab === "friends" ? friends : requests;
+
+    const filtered = useMemo(() => {
+        const term = search.trim().toLowerCase();
+        if (term === "") return list;
+        return list.filter((person) => person.name?.toLowerCase().includes(term));
+    }, [list, search]);
+
+    const tabClass = (active: boolean) =>
+        `flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors cursor-pointer
+        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring
+        ${active ? "bg-brand-subtle text-brand" : "text-content-muted hover:bg-surface-2"}`;
+
+    return (
         <>
             <Sidebar />
-            <div className="flex flex-col sm:flex-row col-span-full sm:col-span-9 gap-4">
-                <Container className="w-full sm:w-[80%] h-full rounded-2xl" padding="p-0">
 
-                    <div className="flex flex-col gap-4 mb-4 flex-wrap">
-                        <div className="flex flex-col gap-2 border-b border-neutral-200 dark:border-neutral-800 p-4">
-                            <div>
+            <div className="flex flex-1 min-w-0 flex-col lg:flex-row gap-4">
+                <Container className="w-full lg:w-[72%] rounded-card min-w-0" padding="p-0">
 
-                                <h1 className="text-2xl font-semibold mb-4">Amigos</h1>
-                            </div>
-                            <div className="flex flex-col gap-2">
-
-                                <div className="w-full flex flex-row gap-2 justify-end">
-
-                                    <ColorButton
-                                        onClick={() => setModalNewCommunity(true)}
-                                    >
-                                        <SearchIcon className="size-5" />
-                                    </ColorButton>
-                                    
-                                </div>
-                                <div className="w-full flex flex-col sm:flex-row items-center gap-2 mt-2">
-
-                                    <div className="flex flex-row items-center bg-neutral-800 hover:bg-neutral-900 text-xs font-semibold py-2 px-2 pl-2 pr-2 rounded-md cursor-pointer gap-2">
-                                        Antônio
-                                        <CloseIcon className="size-3" />
-                                    </div>
-                                </div>
-                                
-                            </div>
+                    <div className="flex flex-col gap-4 border-b border-line p-4">
+                        <div className="flex flex-wrap items-baseline justify-between gap-2">
+                            <h1 className="text-2xl font-semibold">Amigos</h1>
+                            <span className="text-sm text-content-muted">
+                                {loading
+                                    ? "Carregando..."
+                                    : `${friends.length} ${friends.length === 1 ? "amigo" : "amigos"}`}
+                            </span>
                         </div>
 
-                        {loading && (
-                            <div className="w-full grid grid-cols-1 sm:grid-cols-5 gap-4 p-4">
+                        {/* Busca real, filtrando a aba atual — antes o botão de lupa
+                            abria o modal de comunidade e não buscava nada */}
+                        <div className="flex w-full items-center gap-2 rounded-full border border-line
+                            bg-surface-2 px-4 py-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand-ring">
+                            <SearchIcon className="size-5 shrink-0 text-content-muted" />
+                            <input
+                                type="search"
+                                aria-label="Buscar amigos pelo nome"
+                                placeholder="Buscar pelo nome..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="w-full bg-transparent text-sm text-content placeholder:text-content-subtle outline-none"
+                            />
+                            {search && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearch("")}
+                                    aria-label="Limpar busca"
+                                    className="rounded-full p-1 text-content-muted hover:bg-surface-3 hover:text-content
+                                        cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                                >
+                                    <CloseIcon className="size-3" />
+                                </button>
+                            )}
+                        </div>
 
-                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[1/1]"/>
-                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[1/1]"/>
-                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[1/1]"/>
-                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[1/1]"/>
-                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[1/1]"/>
-                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[1/1]"/>
-                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[1/1]"/>
-                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[1/1]"/>
-                                <Skeleton width={"w-full"} rounded="3xl" className="aspect-[1/1]"/>
+                        <div role="tablist" aria-label="Listas de amigos" className="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                role="tab"
+                                aria-selected={tab === "friends"}
+                                onClick={() => setTab("friends")}
+                                className={tabClass(tab === "friends")}
+                            >
+                                <UsersIcon className="size-4" />
+                                Meus amigos
+                                <span className="text-xs opacity-80">{friends.length}</span>
+                            </button>
 
-                            </div>
-                        )}
-                        <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 p-4">
-                            {friends && friends.map((friend) => (
-                                
-                                <CardUser 
-                                    key={friend.id}
-                                    user={friend} 
-                                />
-                                
-                            ))}
-
+                            <button
+                                type="button"
+                                role="tab"
+                                aria-selected={tab === "requests"}
+                                onClick={() => setTab("requests")}
+                                className={tabClass(tab === "requests")}
+                            >
+                                <InboxIcon className="size-4" />
+                                Solicitações
+                                {requests.length > 0 && (
+                                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full
+                                        bg-danger px-1.5 text-[11px] font-semibold text-white">
+                                        {requests.length}
+                                    </span>
+                                )}
+                            </button>
                         </div>
                     </div>
+
+                    <div className="p-4">
+                        {loading && (
+                            <div className={GRID}>
+                                {Array.from({ length: 8 }).map((_, index) => (
+                                    <Skeleton
+                                        key={index}
+                                        width="w-full"
+                                        rounded="card"
+                                        className="aspect-square"
+                                    />
+                                ))}
+                            </div>
+                        )}
+
+                        {!loading && filtered.length > 0 && (
+                            <div className={GRID}>
+                                {tab === "friends"
+                                    ? filtered.map((person) => (
+                                        <CardUser
+                                            key={person.id}
+                                            user={{
+                                                id: person.id,
+                                                name: person.name,
+                                                photo_path: person.photo ?? "/imgs/placeholder.png",
+                                                title: person.autodescription ?? "",
+                                            }}
+                                        />
+                                    ))
+                                    : (
+                                        <RequestFriend
+                                            friends={filtered.map((person) => ({
+                                                id: person.id,
+                                                name: person.name,
+                                                photo: person.photo ?? null,
+                                            }))}
+                                            acceptRequest={acceptRequest}
+                                            declineRequest={declineRequest}
+                                            pendingId={acceptingId}
+                                        />
+                                    )}
+                            </div>
+                        )}
+
+                        {!loading && filtered.length === 0 && (
+                            <div className="flex flex-col items-center gap-3 py-12 text-center">
+                                {tab === "friends" ? (
+                                    <UsersIcon className="size-10 text-content-subtle" />
+                                ) : (
+                                    <InboxIcon className="size-10 text-content-subtle" />
+                                )}
+
+                                <h2 className="text-base font-semibold">
+                                    {search
+                                        ? "Nenhum resultado"
+                                        : tab === "friends"
+                                            ? "Você ainda não tem amigos por aqui"
+                                            : "Nenhuma solicitação pendente"}
+                                </h2>
+
+                                <p className="max-w-sm text-sm text-content-muted">
+                                    {search
+                                        ? `Não encontramos ninguém com "${search}".`
+                                        : tab === "friends"
+                                            ? "Confira as sugestões ao lado e envie o primeiro convite."
+                                            : "Quando alguém te enviar um convite, ele aparece aqui."}
+                                </p>
+                            </div>
+                        )}
+                    </div>
                 </Container>
-                <div className="w-full flex flex-col sm:w-[30%] gap-4" >
 
-                    <Container className="rounded-2xl" padding="p-4">
-                        <h1 className="text-lg font-semibold mb-4">Amigos próximos</h1>
+                <aside aria-label="Sugestões" className="w-full flex flex-col lg:w-[28%] gap-4">
+                    <Container className="rounded-card" padding="p-4">
+                        <h2 className="text-lg font-semibold mb-4">Amigos sugeridos</h2>
                         <div className="grid grid-cols-2 gap-4">
-
-                            {sugestedFriends && sugestedFriends.map((user) => (
-                                    
-                                <CardUser 
-                                    user={user} 
-                                    key={user.id} 
-                                />
+                            {suggestedFriends.slice(0, 6).map((user) => (
+                                <CardUser user={user} key={user.id} />
                             ))}
                         </div>
                     </Container>
-                    <Container className="rounded-2xl" padding="p-4">
-                        <h1 className="text-lg font-semibold mb-4">Amigos sugeridos</h1>
-                        <div className="grid grid-cols-2 gap-4">
-
-                            {sugestedFriends && sugestedFriends.map((user) => (
-                                    
-                                <CardUser 
-                                    user={user} 
-                                    key={user.id} 
-                                />
-                            ))}
-                        </div>
-                    </Container>
-                </div>
-
+                </aside>
             </div>
-            
-            {toaster.show && (
-            <Toaster
-                toaster={toaster}
-                setToaster={setToaster}
-            />
-            )}
+
+            {toaster.show && <Toaster toaster={toaster} setToaster={setToaster} />}
         </>
-    )
+    );
 }

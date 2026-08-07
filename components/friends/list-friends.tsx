@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "../remote-image";
 import MessageIcon from "../icons/message";
 import EllipsisVerticalIcon from "../icons/ellipsis";
 import Button from "../button";
@@ -31,11 +31,10 @@ export default function ListFriends({friends}: FriendsProps) {
                                     className="rounded-full w-[100px] hover:opacity-90 aspect-[1/1]"
                                     width={120}
                                     height={120}
-                                    unoptimized
                                     />
                             </RingImage>
 
-                            <label className="w-[full] flex text-sm font-semibold justify-start">{friend.name}</label>
+                            <span className="w-[full] flex text-sm font-semibold justify-start">{friend.name}</span>
                             
                         </div>
                     </div>

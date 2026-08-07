@@ -5,23 +5,28 @@ import { useEffect, useState } from "react";
 import SunIcon from "./icons/sun";
 import MoonIcon from "./icons/moon";
 import Button from "./button";
+import Skeleton from "./skeleton";
 
 export default function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  // Evita erro de hidratação
+  // Evita erro de hidratação: o tema real só é conhecido no cliente.
   useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
+
+  // Placeholder do mesmo tamanho evita layout shift ao montar.
+  if (!mounted) {
+    return <Skeleton height="h-[40px]" width="w-[40px]" rounded="full" />;
+  }
+
+  const isDark = resolvedTheme === "dark";
 
   return (
-
     <Button
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="p-2 rounded-full bg-neutral-200 dark:bg-neutral-700 hover:opacity-80 transition cursor-pointer" 
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      aria-label={isDark ? "Ativar tema claro" : "Ativar tema escuro"}
     >
-      {theme === "dark" ? <SunIcon className="dark:text-white" /> : <MoonIcon />}
+      {isDark ? <SunIcon className="size-6" /> : <MoonIcon className="size-6" />}
     </Button>
-
   );
 }

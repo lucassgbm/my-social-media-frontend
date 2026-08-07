@@ -1,6 +1,6 @@
 'use client';
 
-import Image from "next/image";
+import Image from "../../../../components/remote-image";
 
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -31,6 +31,7 @@ import UsersIcon from "../../../../components/icons/users";
 import CardUser from "../../../../components/users/card-user";
 import ShowMore from "../../../../components/show-more";
 import CardEvent from "../../../../components/events/card-event";
+import { suggestedFriends, suggestedEvents } from "../../../../mocks/suggestions";
 
 interface NewPost {
   description: string;
@@ -95,70 +96,6 @@ export default function Home() {
 
   const router = useRouter(); 
 
-  const sugestedFriends = [
-    {
-        id: 1,
-        name: "João",
-        title: "Estudante",
-        photo_path: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80"
-    },
-    {
-        id: 2,
-        name: "Maria",
-        title: "Maquiadora",
-        photo_path: "https://images.unsplash.com/photo-1769097137026-c482044ca0fb?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDE5fHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D"
-    },
-    {
-        id: 3,
-        name: "Pedro",
-        title: "Desenvolvedor Full Stack",
-        photo_path: "https://images.unsplash.com/photo-1770191954591-952ab5c63e68?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDkyfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D"
-    },
-    {
-        id: 4,
-        name: "Ana",
-        title: "Dentista",
-        photo_path: "https://images.unsplash.com/photo-1770576568718-6747e3d85de8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDMzfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D"
-    },
-    {
-        id: 5,
-        name: "Pedro",
-        title: "Empresário",
-        photo_path: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80"
-    },
-    {
-        id: 6,
-        name: "Maria",
-        title: "Dentista",
-        photo_path: "https://images.unsplash.com/photo-1770576568718-6747e3d85de8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDMzfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D"
-    },
-    {
-        id: 7,
-        name: "Maria",
-        title: "Advogada",
-        photo_path: "https://images.unsplash.com/photo-1769097137026-c482044ca0fb?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDE5fHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D"
-    },
-  ]
-
-  const sugestedEvents = [
-    {
-        id: 1,
-        title: "Megadrift",
-        description: "Descrição do evento 1",
-        location: "Local do evento 1",
-        date: "01/10/2026",
-        time: "10:00",
-        image: "https://images.unsplash.com/photo-1542362567-b07e54358753?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8Y2Fyc3xlbnwwfHwwfHx8MA%3D%3D"
-    },
-    {
-        id: 2,
-        title: "Evento 2",
-        description: "Descrição do evento 2",
-        location: "Local do evento 2",
-        date: "01/10/2026",
-        time: "10:00",
-        image: "https://plus.unsplash.com/premium_photo-1664304752635-3e0d8d8185e3?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8Y2Fyc3xlbnwwfHwwfHx8MA%3D%3D"
-    }]
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -177,7 +114,7 @@ export default function Home() {
     }
   };
 
-  async function handlePost(e: React.FormEvent<HTMLFormElement>) {
+  async function handlePost(e: React.SyntheticEvent) {
 
     e.preventDefault();
 
@@ -247,12 +184,12 @@ export default function Home() {
   return (
     <>
       <Sidebar />
-      <div className="col-span-full sm:col-span-9 gap-6">
+      <div className="flex-1 min-w-0">
 
         <ListStories />
-          <div className="flex flex-row gap-6">
-            <div className="w-full sm:w-5/7 h-full rounded-2xl mb-4">
-              <Container className="flex flex-row gap-2 mb-4 items-center rounded-md">
+          <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+            <div className="w-full min-w-0 lg:flex-1 mb-4">
+              <Container className="flex flex-row gap-2 mb-4 items-center rounded-card">
                 {myInfo && (
 
                   <>
@@ -260,20 +197,24 @@ export default function Home() {
 
                       <Image
                         src={ myInfo.photo ?? '/imgs/placeholder.png'}
-                        alt="Foto de perfil"
-                        className="rounded-full w-[50px] aspect-[1/1]"
+                        alt=""
+                        className="rounded-full w-[50px] aspect-square object-cover"
                         width={50}
                         height={50}
+                        sizes="50px"
                       />
                     </RingImage>
 
-                    <div className="flex flex-row bg-neutral-100 dark:bg-neutral-800 dark:text-white w-full rounded-full pl-4 pr-4">
-                      <div
-                        className="w-full hover:text-border-0 ml-2 focus:outline-none p-4 rounded-full bg-neutral-100 dark:bg-neutral-800 dark:text-neutral-400 cursor-pointer"
-                        onClick={() => setModalNewPost(true)}
-                      >Como você está se sentindo hoje?
-                      </div>
-                    </div>
+                    {/* button (e não div) para ser focável e acionável por teclado */}
+                    <button
+                      type="button"
+                      onClick={() => setModalNewPost(true)}
+                      className="w-full rounded-full bg-surface-2 p-4 text-left text-sm text-content-muted
+                        hover:bg-surface-3 transition-colors cursor-pointer
+                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                    >
+                      Como você está se sentindo hoje?
+                    </button>
                   </>
                 )}
                 {!myInfo && (
@@ -312,16 +253,36 @@ export default function Home() {
                   </Container>
                 </>
               )}
+              {!loadingFeed && feed.length === 0 && (
+                <Container className="flex flex-col items-center gap-3 rounded-card py-10 text-center">
+                  <PhotoIcon className="size-10 text-content-subtle" />
+                  <h2 className="text-base font-semibold">Seu feed está vazio</h2>
+                  <p className="max-w-xs text-sm text-content-muted">
+                    Publique algo ou siga outras pessoas para começar a ver
+                    novidades por aqui.
+                  </p>
+                  <ColorButtom
+                    className="px-4 text-sm font-semibold"
+                    onClick={() => setModalNewPost(true)}
+                  >
+                    Criar primeiro post
+                  </ColorButtom>
+                </Container>
+              )}
+
               <Feed feed={feed} />
 
             </div>
-            <div className="hidden sm:block relative w-2/7">
+            <aside
+              aria-label="Sugestões"
+              className="hidden lg:block relative w-[320px] shrink-0"
+            >
                 {/* {event && (
-                  <Container className="mb-4 rounded-md">
+                  <Container className="mb-4 rounded-card">
                   
                     <div className="flex flex-row justify-between">
 
-                      <label className="text-sm font-semibold mb-4 ">Próximo Evento</label>
+                      <h2 className="text-sm font-semibold mb-4">Próximo Evento</h2>
                       <CalendarIcon />
                     </div>
 
@@ -330,10 +291,10 @@ export default function Home() {
                 )} */}
 
                 {event?.length === 0 && (
-                  <Container className="mb-4 rounded-md">
+                  <Container className="mb-4 rounded-card">
                     <div className="flex flex-row justify-between">
 
-                      <label className="text-sm font-semibold mb-4 ">Próximo Evento</label>
+                      <h2 className="text-sm font-semibold mb-4">Próximo Evento</h2>
                       <CalendarIcon />
                     </div>
 
@@ -374,7 +335,7 @@ export default function Home() {
                 )}
 
                 {!event && (
-                  <Container className="mb-4 rounded-md">
+                  <Container className="mb-4 rounded-card">
                     <div className="flex flex-row justify-center">
 
                       <Skeleton rounded="md" height="h-[25px]" width="w-[100px]" />
@@ -401,13 +362,13 @@ export default function Home() {
                   </Container>
                 )}
 
-              <Container className="mb-4 rounded-md">
+              <Container className="mb-4 rounded-card">
                 <div className="flex flex-row justify-between mb-4">
-                  <label className="text-sm font-semibold">Eventos sugeridos</label>
+                  <h2 className="text-sm font-semibold">Eventos sugeridos</h2>
                   <CalendarIcon />
                 </div>
                 <div className="flex flex-col gap-4">
-                  {sugestedEvents.map((event) => (
+                  {suggestedEvents.map((event) => (
                     
                     <CardEvent event={event} key={event.id} />
                   ))}
@@ -416,22 +377,22 @@ export default function Home() {
                 <ShowMore onClick={() => router.push('/social-media/events')} />
 
               </Container>
-              <Container className="mb-4 rounded-md">
+              <Container className="mb-4 rounded-card">
                   <div className="flex flex-row justify-between">
-                    <label className="text-sm font-semibold">Conecte com outras pessoas</label>
+                    <h2 className="text-sm font-semibold">Conecte com outras pessoas</h2>
                     <UsersIcon className="size-5" />
                   </div>
                   <div className="grid grid-cols-2 gap-2 pt-4">
-                      {sugestedFriends.map((friend) => (
+                      {suggestedFriends.map((friend) => (
                           <CardUser user={friend} key={friend.id} />
                       ))}
                   </div>
                   <ShowMore onClick={() => router.push('/social-media/events')} />
 
               </Container>
-              <Container className="mb-4 rounded-md">
+              <Container className="mb-4 rounded-card">
                   <div className="flex flex-row justify-between">
-                    <label className="text-sm font-semibold">Comunidades</label>
+                    <h2 className="text-sm font-semibold">Comunidades</h2>
                     <CommunityIcon className="size-5" />
                   </div>
                   {!communities && (
@@ -449,7 +410,7 @@ export default function Home() {
                       
                       return (
                         
-                        <Card className="flex flex-col justify-center  mt-4 bg-neutral-100 dark:bg-neutral-800 border-1 border-neutral-400/30 rounded-xl cursor-pointer hover:shadow-md" key={index}>
+                        <Card className="flex flex-col justify-center mt-4 cursor-pointer transition-shadow hover:shadow-md" key={index}>
                           <div className="flex flex-row items-center rounded-sm mb-2">
                             <Image
                               src={community.photo ?? "/imgs/placeholder.png"}
@@ -460,7 +421,7 @@ export default function Home() {
                               priority
                             />
                             <div className="flex flex-col text-left">
-                              <label className="text-xs font-semibold">{community.name}</label>
+                              <h3 className="text-xs font-semibold">{community.name}</h3>
                               <p className="text-xs font-normal w-full" 
 
                               >
@@ -471,7 +432,7 @@ export default function Home() {
                               </p>
                             </div>
                           </div>
-                          <div className="w-full flex flex-row items-center border-t-1 border-gray-200 dark:border-gray-800 p-1">
+                          <div className="w-full flex flex-row items-center border-t border-line p-1">
                             <Image
                               src="/imgs/bmw.jpg"
                               alt="Foto de perfil"
@@ -488,7 +449,7 @@ export default function Home() {
                               height={20}
                               priority
                             />
-                            <label className="text-xs font-semibold ml-auto">243 join</label>
+                            <span className="text-xs font-semibold ml-auto">243 join</span>
                           </div>
                         </Card>
                       
@@ -500,7 +461,7 @@ export default function Home() {
                   <ShowMore onClick={() => router.push('/social-media/communities')} />
               </Container>
               <SidebarFooter />
-            </div>
+            </aside>
           </div>
 
       </div>
@@ -517,25 +478,31 @@ export default function Home() {
         <div className="flex flex-row gap-2 items-center">
           <Image
             src={ myInfo?.photo ?? '/imgs/placeholder.png'}
-            alt="Foto de perfil"
-            className="rounded-full w-[40px] aspect-[1/1]"
+            alt=""
+            className="rounded-full w-[40px] aspect-square object-cover"
             width={40}
             height={40}
-            unoptimized
+            sizes="40px"
           />
           <div className="flex flex-col gap-1">
-            <label className="text-sm">{myInfo?.name}</label>
-            <select className="bg-neutral-200 dark:bg-neutral-600 text-white rounded-2xl text-xs p-1">
+            <span className="text-sm font-semibold">{myInfo?.name}</span>
+            <select
+              aria-label="Visibilidade do post"
+              className="rounded-full bg-surface-2 text-content text-xs p-1"
+            >
               <option>Privado</option>
               <option>Publico</option>
             </select>
           </div>
         </div>
-        <div className="flex flex-row dark:text-white w-full py-4 rounded-full gap-2 mb-2">
+        <div className="flex flex-row w-full py-4 gap-2 mb-2">
           <input
             type="text"
+            aria-label="Descrição do post"
+            value={newPost.description}
             placeholder="Como você está se sentindo hoje?"
-            className="w-full hover:text-border-0 focus:outline-none rounded-full dark:text-white text-neutral-800"
+            className="w-full rounded-full bg-transparent text-content placeholder:text-content-subtle
+              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
             onChange={(e) => {
               setNewPost({ ...newPost, description: e.target.value });
               setToaster({ ...toaster, show: false });
@@ -561,13 +528,13 @@ export default function Home() {
             />
           </div>
         )}
-        <span className="text-sm mb-2">Adicionar ao post</span>
+        <span className="text-sm mb-2 text-content-muted">Adicionar ao post</span>
         <div className="flex flex-row mb-2 gap-2">
-          <Button onClick={handleButtonClick}>
-            <PhotoIcon className="size-6 dark:text-white text-neutral-800" />
+          <Button onClick={handleButtonClick} aria-label="Adicionar foto">
+            <PhotoIcon className="size-6" />
           </Button>
-          <Button onClick={() => {}}>
-            <PinIcon className="size-6 dark:text-white text-neutral-800" />
+          <Button onClick={() => {}} aria-label="Adicionar localização">
+            <PinIcon className="size-6" />
           </Button>
         </div>
         <div className="flex flex-row justify-end">
@@ -576,8 +543,12 @@ export default function Home() {
               <LoadingSpinner />
             </div>
           )}
-          <ColorButtom onClick={(e) => handlePost(e)}>
-            <AirPlaneIcon className="size-6 dark:text-white text-neutral-800" />
+          <ColorButtom
+            onClick={(e) => handlePost(e)}
+            disabled={loadingSendPost}
+            aria-label="Publicar post"
+          >
+            <AirPlaneIcon className="size-6" />
           </ColorButtom>
         </div>
       </Modal>

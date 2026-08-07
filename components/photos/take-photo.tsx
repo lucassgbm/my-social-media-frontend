@@ -47,7 +47,7 @@ export default function TakePhoto(props: { setIsOpen: any }) {
     }
   }
 
-  async function handlePhoto(e: React.FormEvent<HTMLFormElement>) {
+  async function handlePhoto(e: React.SyntheticEvent) {
     e.preventDefault();
     
     const formData = new FormData();

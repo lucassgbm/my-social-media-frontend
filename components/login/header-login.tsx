@@ -1,16 +1,22 @@
-export default function HeaderLogin(){
+import Image from "../remote-image";
+import Link from "next/link";
 
+export default function HeaderLogin() {
     return (
-        <>
-            <div className="flex mt-6 mb-4">
-                <a href="#" className="-m-1.5 p-1.5">
-                    <span className="sr-only">Your Company</span>
-                    <img src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=600" alt="" className="h-8 w-auto" />
-                </a>
-            </div>
-            <p className="text-xs mb-2">
+        <div className="mb-6">
+            <Link href="/" className="inline-flex">
+                <Image
+                    src="/imgs/logo_social_media.png"
+                    alt="Social Media"
+                    width={120}
+                    height={40}
+                    className="h-8 w-auto"
+                    priority
+                />
+            </Link>
+            <p className="text-xs mt-3 text-neutral-300">
                 Participe de comunidades, divulgue o seu evento, faça amigos.
             </p>
-        </>
-    )
+        </div>
+    );
 }

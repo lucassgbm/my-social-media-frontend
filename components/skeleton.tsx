@@ -2,7 +2,19 @@ type SkeletonProps = {
   width?: string;
   height?: string;
   className?: string;
-  rounded?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "full";
+  rounded?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "full" | "card" | "field";
+};
+
+const roundedMap: Record<NonNullable<SkeletonProps["rounded"]>, string> = {
+  sm: "rounded-sm",
+  md: "rounded-md",
+  lg: "rounded-lg",
+  xl: "rounded-xl",
+  "2xl": "rounded-2xl",
+  "3xl": "rounded-3xl",
+  full: "rounded-full",
+  card: "rounded-card",
+  field: "rounded-field",
 };
 
 export default function Skeleton({
@@ -11,24 +23,10 @@ export default function Skeleton({
   className = "",
   rounded = "md",
 }: SkeletonProps) {
-  const roundedClass =
-    rounded === "sm"
-      ? "rounded-sm"
-      : rounded === "md"
-      ? "rounded-md"
-      : rounded === "lg"
-      ? "rounded-lg"
-      : rounded === "xl"
-      ? "rounded-xl" 
-      : rounded === "2xl"
-      ? "rounded-2xl"
-      : rounded === "3xl"
-      ? "rounded-3xl"
-      : "rounded-full";
-
   return (
     <div
-      className={`${width} ${height} animate-pulse bg-neutral-300 dark:bg-neutral-700 ${roundedClass} ${className}`}
+      aria-hidden="true"
+      className={`${width} ${height} animate-pulse bg-surface-3 ${roundedMap[rounded]} ${className}`}
     />
   );
 }

@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "./remote-image";
 import Container from "./container";
 import Card from "./card";
 

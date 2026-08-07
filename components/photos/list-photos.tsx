@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "../remote-image";
 
 export default function ListPhotos() {
     return (
@@ -15,7 +15,7 @@ export default function ListPhotos() {
                         height={120}
                         priority
                     />
-                    <label className="text-sm font-semibold">foto</label>
+                    <span className="text-sm font-semibold">foto</span>
 
                 </div>
                 <div className="w-[120px] flex flex-col">
@@ -27,7 +27,7 @@ export default function ListPhotos() {
                         height={120}
                         priority
                     />
-                    <label className="text-sm font-semibold">foto</label>
+                    <span className="text-sm font-semibold">foto</span>
 
                 </div>
             </div>

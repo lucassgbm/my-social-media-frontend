@@ -3,12 +3,11 @@
 import { get } from "@/api/services/request";
 import { createContext, useEffect, useState } from "react";
 import Header from "../../../../components/header";
-import Sidebar from "../../../../components/sidebar";
 import BottomMenu from "../../../../components/bottom-menu";
-import Footer from "../../../../components/footer";
 import Messages from "../../../../components/messages";
 
 type MyInfo = {
+  id: number;
   name: string;
   photo: string;
   autodescription: string;
@@ -29,44 +28,43 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
 
+  const [myInfo, setMyInfo] = useState<MyInfo | null>(null);
+  const [openMessages, setOpenMessages] = useState(false);
+
   useEffect(() => {
     getMyInfo();
   }, []);
 
-  const [myInfo, setMyInfo] = useState<MyInfo | null>(null);
-
-  const [openMessages, setOpenMessages] = useState(false);
-
   async function getMyInfo() {
-
     try {
       const response = await get("/social-media/user");
       setMyInfo(response.data);
     } catch (error: any) {
-
       console.log(error);
-      // setToaster({ show: true, message: "Erro ao carregar informações" });
     }
-
   }
 
   return (
-    /*openMessages, setOpenMessages*/
     <AppContext.Provider value={{ myInfo, setMyInfo, openMessages, setOpenMessages }}>
       <Header />
-        <div className="dark:bg-neutral-950 h-full min-h-[100vh] bg-neutral-100">
-          <div className="grid grid-cols-10 sm:flex-row h-full p-6 gap-6 text-gray-600 max-w-7xl mx-auto">
-            
-            {children}
-            {openMessages && (
 
-              <Messages openMessages={openMessages} setOpenMessages={setOpenMessages} />
-            )}
-            <Footer />
-            <BottomMenu />
-          </div>
+      <div className="min-h-screen bg-canvas text-content">
+        {/*
+          Layout em flex: a Sidebar controla a própria largura (w-20 / lg:w-60) e o
+          conteúdo ocupa o restante. Antes era um grid de 10 colunas arbitrário, que
+          espremia a sidebar em 1/10 e obrigava a usar frações como w-5/7.
+          pb-24 no mobile reserva espaço para o BottomMenu fixo.
+        */}
+        <div className="mx-auto flex w-full max-w-7xl gap-4 p-4 pb-24 md:pb-6 lg:gap-6 lg:p-6 lg:pb-6">
+          {children}
         </div>
-    </AppContext.Provider>
 
+        {openMessages && (
+          <Messages openMessages={openMessages} setOpenMessages={setOpenMessages} />
+        )}
+      </div>
+
+      <BottomMenu />
+    </AppContext.Provider>
   );
 }
