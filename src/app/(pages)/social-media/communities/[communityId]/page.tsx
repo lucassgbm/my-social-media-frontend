@@ -13,7 +13,6 @@ import SidebarFooter from "../../../../../../components/sidebar-footer";
 import CardUser from "../../../../../../components/users/card-user";
 import CardEvent from "../../../../../../components/events/card-event";
 import Skeleton from "../../../../../../components/skeleton";
-import Toaster from "../../../../../../components/toaster";
 import PinIcon from "../../../../../../components/icons/pin";
 import TrophyIcon from "../../../../../../components/icons/trophy";
 import CommunityIcon from "../../../../../../components/icons/community";
@@ -29,6 +28,7 @@ import {
     suggestedFriends,
     suggestedEvents,
 } from "../../../../../../mocks/suggestions";
+import { useToaster } from "../../../../../../providers/toaster-provider";
 
 type Community = {
     id: number;
@@ -46,6 +46,8 @@ const TABS: { id: Tab; label: string; icon: typeof UsersIcon }[] = [
 ];
 
 export default function CommunityPage() {
+    const { showToast } = useToaster();
+
     const params = useParams<{ communityId: string }>();
     const communityId = params?.communityId ?? "";
 
@@ -53,13 +55,6 @@ export default function CommunityPage() {
     const [loading, setLoading] = useState(true);
     const [joined, setJoined] = useState(false);
     const [tab, setTab] = useState<Tab>("topics");
-
-    const [toaster, setToaster] = useState({
-        show: false,
-        message: "",
-        status: "",
-        title: "Comunidade",
-    });
 
     useEffect(() => {
         getCommunity();
@@ -72,8 +67,7 @@ export default function CommunityPage() {
         const response = await get(`/social-media/community/${communityId}`);
 
         if (!response) {
-            setToaster({
-                show: true,
+            showToast({
                 title: "Comunidade",
                 message: "Não foi possível carregar a comunidade.",
                 status: "error",
@@ -357,7 +351,6 @@ export default function CommunityPage() {
                 </aside>
             </div>
 
-            {toaster.show && <Toaster toaster={toaster} setToaster={setToaster} />}
         </>
     );
 }

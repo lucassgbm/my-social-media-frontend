@@ -13,7 +13,6 @@ import Textarea from "../../../../../components/textarea";
 import FormButtom from "../../../../../components/form-buttom";
 import Sidebar from "../../../../../components/sidebar";
 import Skeleton from "../../../../../components/skeleton";
-import Toaster from "../../../../../components/toaster";
 import ListCommunities, { type Community } from "../../../../../components/communities/list-communities";
 import SearchIcon from "../../../../../components/icons/search";
 import CloseIcon from "../../../../../components/icons/close";
@@ -23,6 +22,7 @@ import PlusIcon from "../../../../../components/icons/plus";
 import { AppContext } from "../layout";
 import { get, postFormData } from "@/api/services/request";
 import { suggestedCommunities } from "../../../../../mocks/suggestions";
+import { useToaster } from "../../../../../providers/toaster-provider";
 
 type Category = { id: number; name: string };
 type Tab = "all" | "mine";
@@ -36,6 +36,8 @@ type NewCommunityErrors = {
 };
 
 export default function Home() {
+    const { showToast } = useToaster();
+
     const { myInfo } = useContext(AppContext);
 
     const [communities, setCommunities] = useState<Community[]>([]);
@@ -58,13 +60,6 @@ export default function Home() {
     const [preview, setPreview] = useState<string | null>(null);
     const fileRef = useRef<HTMLInputElement>(null);
 
-    const [toaster, setToaster] = useState({
-        show: false,
-        message: "",
-        status: "",
-        title: "Comunidades",
-    });
-
     useEffect(() => {
         loadAll();
     }, []);
@@ -79,8 +74,7 @@ export default function Home() {
         ]);
 
         if (!communitiesResponse) {
-            setToaster({
-                show: true,
+            showToast({
                 title: "Comunidades",
                 message: "Não foi possível carregar as comunidades.",
                 status: "error",
@@ -158,8 +152,7 @@ export default function Home() {
                         : String(messages);
                 });
                 setNewErrors(apiErrors);
-                setToaster({
-                    show: true,
+                showToast({
                     title: "Nova comunidade",
                     message: "Revise os campos destacados.",
                     status: "error",
@@ -167,8 +160,7 @@ export default function Home() {
                 return;
             }
 
-            setToaster({
-                show: true,
+            showToast({
                 title: "Nova comunidade",
                 message: "Comunidade criada com sucesso!",
                 status: "success",
@@ -182,8 +174,7 @@ export default function Home() {
             loadAll();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
-            setToaster({
-                show: true,
+            showToast({
                 title: "Nova comunidade",
                 message:
                     error?.response?.data?.message ??
@@ -514,7 +505,6 @@ export default function Home() {
                 </form>
             </Modal>
 
-            {toaster.show && <Toaster toaster={toaster} setToaster={setToaster} />}
         </>
     );
 }

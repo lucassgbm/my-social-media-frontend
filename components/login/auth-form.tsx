@@ -6,9 +6,9 @@ import Image from "../remote-image";
 import HeaderLogin from "./header-login";
 import Input from "../input";
 import FormButtom from "../form-buttom";
-import Toaster from "../toaster";
 import { auth } from "@/api/services/auth";
 import { post, postFormData } from "@/api/services/request";
+import { useToaster } from "../../providers/toaster-provider";
 
 export type AuthMode = "login" | "register" | "forgot";
 
@@ -43,16 +43,12 @@ function nameFromEmail(email: string): string {
  * estilos duplicados. Recuperar senha é um modo desta mesma tela, sem navegação.
  */
 export default function AuthForm({ initialMode = "login" }: { initialMode?: AuthMode }) {
+    const { showToast, dismissAll } = useToaster();
+
     const router = useRouter();
 
     const [mode, setMode] = useState<AuthMode>(initialMode);
     const [loading, setLoading] = useState(false);
-    const [toaster, setToaster] = useState({
-        show: false,
-        message: "",
-        status: "",
-        title: "",
-    });
 
     // --- login -------------------------------------------------------------
     const [login, setLogin] = useState({ email: "", password: "" });
@@ -72,7 +68,7 @@ export default function AuthForm({ initialMode = "login" }: { initialMode?: Auth
 
     function switchMode(next: AuthMode) {
         setMode(next);
-        setToaster({ ...toaster, show: false });
+        dismissAll();
         setLoginErrors({});
         setRegisterErrors({});
         setForgotErrors({});
@@ -119,8 +115,7 @@ export default function AuthForm({ initialMode = "login" }: { initialMode?: Auth
 
         try {
             await auth(login.email, login.password);
-            setToaster({
-                show: true,
+            showToast({
                 title: "Login",
                 message: "Login realizado com sucesso! Redirecionando...",
                 status: "success",
@@ -128,8 +123,7 @@ export default function AuthForm({ initialMode = "login" }: { initialMode?: Auth
             router.push("/social-media");
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
-            setToaster({
-                show: true,
+            showToast({
                 title: "Login",
                 message:
                     err?.response?.data?.message ??
@@ -168,8 +162,7 @@ export default function AuthForm({ initialMode = "login" }: { initialMode?: Auth
                         : String(messages);
                 });
                 setRegisterErrors(apiErrors);
-                setToaster({
-                    show: true,
+                showToast({
                     title: "Cadastro",
                     message: "Revise os campos destacados.",
                     status: "error",
@@ -177,8 +170,7 @@ export default function AuthForm({ initialMode = "login" }: { initialMode?: Auth
                 return;
             }
 
-            setToaster({
-                show: true,
+            showToast({
                 title: "Cadastro",
                 message: "Conta criada! Faça login para continuar.",
                 status: "success",
@@ -190,8 +182,7 @@ export default function AuthForm({ initialMode = "login" }: { initialMode?: Auth
             setMode("login");
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
-            setToaster({
-                show: true,
+            showToast({
                 title: "Cadastro",
                 message:
                     err?.response?.data?.message ??
@@ -221,8 +212,7 @@ export default function AuthForm({ initialMode = "login" }: { initialMode?: Auth
         setLoading(false);
 
         if (!response) {
-            setToaster({
-                show: true,
+            showToast({
                 title: "Recuperar senha",
                 message: "Não foi possível enviar as instruções. Tente novamente.",
                 status: "error",
@@ -230,8 +220,7 @@ export default function AuthForm({ initialMode = "login" }: { initialMode?: Auth
             return;
         }
 
-        setToaster({
-            show: true,
+        showToast({
             title: "Recuperar senha",
             message: "Se o e-mail estiver cadastrado, enviamos as instruções para ele.",
             status: "success",
@@ -298,7 +287,6 @@ export default function AuthForm({ initialMode = "login" }: { initialMode?: Auth
                                     onChange={(e) => {
                                         setLogin({ ...login, email: e.target.value });
                                         setLoginErrors({ ...loginErrors, email: undefined });
-                                        setToaster({ ...toaster, show: false });
                                     }}
                                 />
 
@@ -313,7 +301,6 @@ export default function AuthForm({ initialMode = "login" }: { initialMode?: Auth
                                     onChange={(e) => {
                                         setLogin({ ...login, password: e.target.value });
                                         setLoginErrors({ ...loginErrors, password: undefined });
-                                        setToaster({ ...toaster, show: false });
                                     }}
                                 />
 
@@ -355,7 +342,6 @@ export default function AuthForm({ initialMode = "login" }: { initialMode?: Auth
                                     onChange={(e) => {
                                         setForgotEmail(e.target.value);
                                         setForgotErrors({});
-                                        setToaster({ ...toaster, show: false });
                                     }}
                                 />
 
@@ -463,7 +449,6 @@ export default function AuthForm({ initialMode = "login" }: { initialMode?: Auth
                 />
             </div>
 
-            {toaster.show && <Toaster toaster={toaster} setToaster={setToaster} />}
         </div>
     );
 }

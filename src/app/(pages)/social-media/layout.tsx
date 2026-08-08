@@ -6,11 +6,24 @@ import Header from "../../../../components/header";
 import BottomMenu from "../../../../components/bottom-menu";
 import Messages from "../../../../components/messages";
 
-type MyInfo = {
+/**
+ * Espelha App\Http\Resources\UserResource (GET /social-media/user).
+ * Os campos nullable no banco chegam como null — daí os opcionais.
+ */
+export type MyInfo = {
   id: number;
   name: string;
+  email: string;
+  /** URL assinada e temporária do R2 (10 min). Vazia quando não há foto. */
   photo: string;
+  /** Caminho cru no bucket, sem assinatura. */
+  photo_url?: string | null;
   autodescription: string;
+  birthdate?: string | null;
+  age?: number | null;
+  city?: string | null;
+  uf?: string | null;
+  phone?: string | null;
 };
 
 type AppContextType = {

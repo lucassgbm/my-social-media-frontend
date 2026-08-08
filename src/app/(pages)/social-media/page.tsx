@@ -12,7 +12,6 @@ import Modal from "../../../../components/modal";
 import PhotoIcon from "../../../../components/icons/photo";
 import Button from "../../../../components/button";
 import AirPlaneIcon from "../../../../components/icons/airplane";
-import Toaster from "../../../../components/toaster";
 import { post, get, postFormData } from "../../../api/services/request";
 import ListStories from "../../../../components/list-stories";
 import Skeleton from "../../../../components/skeleton";
@@ -32,6 +31,7 @@ import CardUser from "../../../../components/users/card-user";
 import ShowMore from "../../../../components/show-more";
 import CardEvent from "../../../../components/events/card-event";
 import { suggestedFriends, suggestedEvents } from "../../../../mocks/suggestions";
+import { useToaster } from "../../../../providers/toaster-provider";
 
 interface NewPost {
   description: string;
@@ -62,6 +62,8 @@ interface Community {
 }
 
 export default function Home() {
+  const { showToast } = useToaster();
+
 
   useEffect(() => {
     getFeed();
@@ -70,12 +72,6 @@ export default function Home() {
   }, []);
 
   const [modalNewPost, setModalNewPost] = useState(false);
-  const [toaster, setToaster] = useState({
-    show: false,
-    message: "",
-    title: "",
-    status: '',
-  });
   const [loadingFeed, setLoadingFeed] = useState(false);
   const [loadingSendPost, setLoadingSendPost] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
@@ -119,7 +115,7 @@ export default function Home() {
     e.preventDefault();
 
     if (newPost.description === "") {
-      setToaster({ show: true, message: "Preencha a descrição", status: "error", title: "Criar Post" });
+      showToast({ message: "Preencha a descrição", status: "error", title: "Criar Post" });
       return;
     }
 
@@ -131,7 +127,7 @@ export default function Home() {
     try {
 
       const response = await postFormData("/social-media/post", formData);
-      setToaster({ show: true, message: "Post criado com sucesso!", status: "success", title: "Criar Post" });
+      showToast({ message: "Post criado com sucesso!", status: "success", title: "Criar Post" });
       setNewPost({ description: "", photo_path: "" });
       setModalNewPost(false);
       setPreview(null);
@@ -139,7 +135,7 @@ export default function Home() {
 
     } catch (error: any) {
 
-      setToaster({...toaster, show: true, message: "Erro ao criar post: " + error.response.data.message, status: 'error', title: "Criar Post"});
+      showToast({ message: "Erro ao criar post: " + error.response.data.message, status: 'error', title: "Criar Post"});
 
     }
 
@@ -154,7 +150,7 @@ export default function Home() {
       setFeed(response.data);
     } catch (error: any) {
 
-      setToaster({...toaster, show: true, message: "Erro ao carregar feed", status: 'error', title: "Feed"});
+      showToast({ message: "Erro ao carregar feed", status: 'error', title: "Feed"});
     }
     setLoadingFeed(false);
   }
@@ -166,7 +162,7 @@ export default function Home() {
       setEvent(response.data);
     } catch (error: any) {
 
-      setToaster({...toaster, show: true, message: "Erro ao carregar Evento", status: 'error', title: "Evento"});
+      showToast({ message: "Erro ao carregar Evento", status: 'error', title: "Evento"});
     }
   }
 
@@ -177,7 +173,7 @@ export default function Home() {
       setCommunities(response.data);
     } catch (error: any) {
 
-      setToaster({...toaster, show: true, message: "Erro ao carregar Comunidades", status: 'error', title: "Comunidades"});
+      showToast({ message: "Erro ao carregar Comunidades", status: 'error', title: "Comunidades"});
     }
   }
 
@@ -503,10 +499,7 @@ export default function Home() {
             placeholder="Como você está se sentindo hoje?"
             className="w-full rounded-full bg-transparent text-content placeholder:text-content-subtle
               focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
-            onChange={(e) => {
-              setNewPost({ ...newPost, description: e.target.value });
-              setToaster({ ...toaster, show: false });
-            }}
+            onChange={(e) => setNewPost({ ...newPost, description: e.target.value })}
           />
 
         </div>
@@ -552,14 +545,6 @@ export default function Home() {
           </ColorButtom>
         </div>
       </Modal>
-      {toaster.show && (
-        <Toaster
-          toaster={toaster}
-          setToaster={setToaster}
-        />
-      )}
-
-
     </>
   );
 }

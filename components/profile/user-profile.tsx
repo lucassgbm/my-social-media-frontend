@@ -11,7 +11,6 @@ import ColorButton from "../color-button";
 import BorderButton from "../border-button";
 import Modal from "../modal";
 import Skeleton from "../skeleton";
-import Toaster from "../toaster";
 import LoadingSpinner from "../loading-spinner";
 import CardUser from "../users/card-user";
 import Sidebar from "../sidebar";
@@ -32,6 +31,7 @@ import CommunityIcon from "../icons/community";
 import { AppContext } from "@/app/(pages)/social-media/layout";
 import { get, postFormData } from "@/api/services/request";
 import { suggestedFriends, suggestedCommunities } from "../../mocks/suggestions";
+import { useToaster } from "../../providers/toaster-provider";
 
 interface UserPhoto {
     id: number;
@@ -69,6 +69,8 @@ const TABS: { id: Tab; label: string; icon: typeof UsersIcon }[] = [
  * precisava ser repetido três vezes e elas já haviam divergido.
  */
 export default function UserProfile({ profileName }: { profileName: string }) {
+    const { showToast } = useToaster();
+
     const { myInfo } = useContext(AppContext);
 
     // Só existe endpoint para o usuário logado (/social-media/user). Enquanto
@@ -92,13 +94,6 @@ export default function UserProfile({ profileName }: { profileName: string }) {
     });
     const [loadingSendPhoto, setLoadingSendPhoto] = useState(false);
     const [preview, setPreview] = useState<string | null>(null);
-
-    const [toaster, setToaster] = useState({
-        show: false,
-        message: "",
-        status: "",
-        title: "",
-    });
 
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -140,7 +135,7 @@ export default function UserProfile({ profileName }: { profileName: string }) {
         const response = await get("/social-media/feed");
 
         if (!response) {
-            setToaster({ show: true, message: "Erro ao carregar posts", status: "error", title: "Posts" });
+            showToast({ message: "Erro ao carregar posts", status: "error", title: "Posts" });
         }
 
         setUserPosts(response?.data ?? []);
@@ -152,7 +147,7 @@ export default function UserProfile({ profileName }: { profileName: string }) {
         const response = await get("/social-media/user-photos");
 
         if (!response) {
-            setToaster({ show: true, message: "Erro ao carregar fotos", status: "error", title: "Fotos" });
+            showToast({ message: "Erro ao carregar fotos", status: "error", title: "Fotos" });
         }
 
         setUserPhotos(response?.data ?? []);
@@ -173,7 +168,7 @@ export default function UserProfile({ profileName }: { profileName: string }) {
         e.preventDefault();
 
         if (newPhoto.photo_path === null) {
-            setToaster({ show: true, message: "Escolha uma foto", status: "error", title: "Nova Foto" });
+            showToast({ message: "Escolha uma foto", status: "error", title: "Nova Foto" });
             return;
         }
 
@@ -185,15 +180,14 @@ export default function UserProfile({ profileName }: { profileName: string }) {
 
         try {
             await postFormData("/social-media/user-photos", formData);
-            setToaster({ show: true, message: "Foto enviada com sucesso!", status: "success", title: "Nova Foto" });
+            showToast({ message: "Foto enviada com sucesso!", status: "success", title: "Nova Foto" });
             setNewPhoto({ photo_path: null });
             setModalNewPhoto(false);
             setPreview(null);
             getUserPhotos();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
-            setToaster({
-                show: true,
+            showToast({
                 message: "Erro ao enviar foto: " + (error?.response?.data?.message ?? ""),
                 status: "error",
                 title: "Nova Foto",
@@ -658,7 +652,6 @@ export default function UserProfile({ profileName }: { profileName: string }) {
                 </div>
             </Modal>
 
-            {toaster.show && <Toaster toaster={toaster} setToaster={setToaster} />}
         </>
     );
 }

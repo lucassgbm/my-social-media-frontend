@@ -67,10 +67,22 @@ body {
   color: var(--color-content);
 }
 
-/* Indicador de foco padrão consistente em toda a aplicação */
-:focus-visible {
-  outline: 2px solid var(--color-brand-ring);
-  outline-offset: 2px;
+/*
+ * Indicador de foco padrão consistente em toda a aplicação.
+ *
+ * Precisa estar em @layer base. Fora de qualquer layer, a regra vence todas as
+ * layers do Tailwind por definição da cascata — nem `outline-none` nem
+ * `focus-visible:outline-none` conseguiam desligá-la. O efeito aparecia nos
+ * campos dentro de uma pílula com `focus-within:outline-*`: o wrapper desenhava
+ * o anel arredondado e o próprio input desenhava um segundo anel retangular por
+ * dentro. Dentro da base, qualquer utility passa a sobrepor, que é o esperado
+ * de um padrão.
+ */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-brand-ring);
+    outline-offset: 2px;
+  }
 }
 
 /* Oculta scrollbar no Chrome, Safari e Edge */
@@ -82,4 +94,84 @@ body {
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Scrollbar discreta para listas dentro de painéis, onde a barra padrão do
+   Windows rouba largura e destoa do resto da interface */
+.scrollbar-slim {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) transparent;
+}
+
+.scrollbar-slim::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-slim::-webkit-scrollbar-thumb {
+  background: var(--color-line-strong);
+  border-radius: 9999px;
+}
+
+.scrollbar-slim::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Entrada da gaveta de mensagens */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 200ms ease-out;
+}
+
+.animate-slide-in-right {
+  /* curva de saída rápida: dá sensação de painel "puxado" em vez de deslizado */
+  animation: slide-in-right 260ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Avisos do toaster global */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(0.75rem) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toast-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(0.5rem) scale(0.98); }
+}
+
+/* Barra que encolhe até o aviso sumir; a duração vem inline, do componente */
+@keyframes toast-progress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+.animate-toast-in {
+  animation: toast-in 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.animate-toast-out {
+  /* forwards mantém o estado final até o React desmontar o elemento */
+  animation: toast-out 180ms ease-in forwards;
+}
+
+.animate-toast-progress {
+  animation: toast-progress linear forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-slide-in-right,
+  .animate-toast-in,
+  .animate-toast-out {
+    animation: none;
+  }
 }

@@ -185,7 +185,11 @@ export default function TakePhoto(props: { setIsOpen: any }) {
             />
 
             <div className="w-full absolute bottom-0 flex flex-row justify-between p-2 gap-2">
-              <div className="flex flex-row bg-neutral-100 dark:bg-neutral-800/70 dark:text-white w-full rounded-full pl-4 pr-4">
+              {/* O anel de foco vai no wrapper: o input tem focus:outline-none e,
+                  agora que essa utility realmente vence o padrão de :focus-visible,
+                  sem isso o campo ficaria sem nenhuma indicação de foco */}
+              <div className="flex flex-row bg-neutral-100 dark:bg-neutral-800/70 dark:text-white w-full rounded-full pl-4 pr-4
+                focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand-ring">
                 <input
                   type="text"
                   onChange={ (e) => setDescription(e.target.value)}

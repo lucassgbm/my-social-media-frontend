@@ -6,13 +6,13 @@ import Container from "../../../../../components/container";
 import Sidebar from "../../../../../components/sidebar";
 import CardUser from "../../../../../components/users/card-user";
 import RequestFriend from "../../../../../components/friends/request-friend";
-import Toaster from "../../../../../components/toaster";
 import Skeleton from "../../../../../components/skeleton";
 import SearchIcon from "../../../../../components/icons/search";
 import CloseIcon from "../../../../../components/icons/close";
 import UsersIcon from "../../../../../components/icons/users";
 import InboxIcon from "../../../../../components/icons/inbox";
 import { suggestedFriends } from "../../../../../mocks/suggestions";
+import { useToaster } from "../../../../../providers/toaster-provider";
 
 type Person = {
     id: number;
@@ -26,6 +26,8 @@ type Tab = "friends" | "requests";
 const GRID = "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4";
 
 export default function Home() {
+    const { showToast } = useToaster();
+
     const [tab, setTab] = useState<Tab>("friends");
     const [search, setSearch] = useState("");
 
@@ -33,13 +35,6 @@ export default function Home() {
     const [requests, setRequests] = useState<Person[]>([]);
     const [loading, setLoading] = useState(true);
     const [acceptingId, setAcceptingId] = useState<number | null>(null);
-
-    const [toaster, setToaster] = useState({
-        show: false,
-        message: "",
-        title: "Amigos",
-        status: "",
-    });
 
     useEffect(() => {
         loadAll();
@@ -55,8 +50,7 @@ export default function Home() {
         ]);
 
         if (!friendsResponse || !requestsResponse) {
-            setToaster({
-                show: true,
+            showToast({
                 title: "Amigos",
                 message: "Não foi possível carregar a sua lista.",
                 status: "error",
@@ -74,8 +68,7 @@ export default function Home() {
         const response = await post("/social-media/friends/accept", { user_id: userId });
 
         if (!response) {
-            setToaster({
-                show: true,
+            showToast({
                 title: "Amigos",
                 message: "Não foi possível aceitar a solicitação.",
                 status: "error",
@@ -89,8 +82,7 @@ export default function Home() {
         setRequests((current) => current.filter((person) => person.id !== userId));
         if (accepted) setFriends((current) => [accepted, ...current]);
 
-        setToaster({
-            show: true,
+        showToast({
             title: "Amigos",
             message: `Agora vocês são amigos${accepted ? `, ${accepted.name}` : ""}!`,
             status: "success",
@@ -274,7 +266,6 @@ export default function Home() {
                 </aside>
             </div>
 
-            {toaster.show && <Toaster toaster={toaster} setToaster={setToaster} />}
         </>
     );
 }

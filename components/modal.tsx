@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import Button from "./button";
 import CloseIcon from "./icons/close";
 
@@ -15,6 +15,9 @@ type ModalProps = {
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
 
+/** O X do cabeçalho é o primeiro focável do DOM, mas é o pior lugar para começar. */
+const DISMISS_ATTR = "data-modal-dismiss";
+
 export default function Modal({
   isOpen,
   onClose,
@@ -26,15 +29,55 @@ export default function Modal({
   const previouslyFocused = useRef<HTMLElement | null>(null);
   const titleId = useId();
 
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
+  // onClose costuma ser uma arrow inline no chamador, ou seja, muda de
+  // identidade a cada render do pai. Guardá-la numa ref é o que permite os
+  // efeitos abaixo dependerem só de `isOpen` — ver o comentário do foco.
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
+  /**
+   * Foco inicial e trava de scroll: rodam uma vez por abertura.
+   *
+   * Este efeito também dependia de `handleKeyDown`, que dependia de `onClose`.
+   * Como `onClose` mudava a cada render do pai, digitar uma letra em qualquer
+   * campo re-executava o efeito e jogava o foco de volta no botão de fechar —
+   * dava para digitar só um caractere por vez.
+   */
+  useEffect(() => {
+    if (!isOpen) return;
+
+    previouslyFocused.current = document.activeElement as HTMLElement | null;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    // Prefere o primeiro campo/ação de conteúdo; o X só se não houver outro.
+    const panel = panelRef.current;
+    const items = Array.from(panel?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []);
+    const target = items.find((el) => !el.hasAttribute(DISMISS_ATTR)) ?? items[0] ?? panel;
+
+    target?.focus();
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      previouslyFocused.current?.focus();
+    };
+  }, [isOpen]);
+
+  /** Esc fecha e Tab circula apenas dentro do modal. */
+  useEffect(() => {
+    if (!isOpen) return;
+
+    function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
 
-      // Focus trap: Tab circula apenas entre os elementos do modal.
       if (e.key !== "Tab" || !panelRef.current) return;
 
       const items = Array.from(
@@ -56,32 +99,11 @@ export default function Modal({
         e.preventDefault();
         first.focus();
       }
-    },
-    [onClose]
-  );
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    previouslyFocused.current = document.activeElement as HTMLElement | null;
-
-    // Bloqueia o scroll do body enquanto o modal está aberto.
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    }
 
     document.addEventListener("keydown", handleKeyDown);
-
-    // Move o foco para dentro do modal.
-    const firstFocusable =
-      panelRef.current?.querySelector<HTMLElement>(FOCUSABLE);
-    (firstFocusable ?? panelRef.current)?.focus();
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = originalOverflow;
-      previouslyFocused.current?.focus();
-    };
-  }, [isOpen, handleKeyDown]);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -104,12 +126,12 @@ export default function Modal({
           bg-surface text-content rounded-none sm:rounded-card shadow-xl p-6 z-10
           ${width ?? "sm:w-[600px]"}`}
       >
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-4 shrink-0">
           <h2 id={titleId} className="text-lg font-semibold text-content">
             {title}
           </h2>
 
-          <Button onClick={onClose} aria-label="Fechar">
+          <Button onClick={onClose} aria-label="Fechar" data-modal-dismiss="">
             <CloseIcon className="size-6" />
           </Button>
         </div>
