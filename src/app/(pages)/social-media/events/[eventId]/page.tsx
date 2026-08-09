@@ -1,0 +1,307 @@
+'use client';
+
+import { useCallback, useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "../../../../../../components/remote-image";
+import Container from "../../../../../../components/container";
+import Card from "../../../../../../components/card";
+import Sidebar from "../../../../../../components/sidebar";
+import SidebarFooter from "../../../../../../components/sidebar-footer";
+import Button from "../../../../../../components/button";
+import Skeleton from "../../../../../../components/skeleton";
+import ArrowLeftIcon from "../../../../../../components/icons/arrow-left";
+import TrophyIcon from "../../../../../../components/icons/trophy";
+import PinIcon from "../../../../../../components/icons/pin";
+import ClockIcon from "../../../../../../components/icons/clock";
+import CalendarIcon from "../../../../../../components/icons/calendar";
+import UsersIcon from "../../../../../../components/icons/users";
+import MessageIcon from "../../../../../../components/icons/message";
+import CommunityIcon from "../../../../../../components/icons/community";
+import { get, remove } from "@/api/services/request";
+import { useToaster } from "../../../../../../providers/toaster-provider";
+import {
+    formatDate,
+    formatTime,
+    type Community,
+    type CommunityEvent,
+} from "../../../../../../utils/community";
+
+/**
+ * Página de um evento, com o cartão da comunidade que o organiza.
+ *
+ * Chega pela agenda pessoal (/social-media/events), que mistura comunidades —
+ * por isso a identificação de quem organiza vem junto do evento.
+ */
+export default function EventPage() {
+    const { showToast } = useToaster();
+    const router = useRouter();
+
+    const params = useParams<{ eventId: string }>();
+    const eventId = params?.eventId ?? "";
+
+    const [event, setEvent] = useState<CommunityEvent | null>(null);
+    const [community, setCommunity] = useState<Community | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [notFound, setNotFound] = useState(false);
+
+    const loadEvent = useCallback(async () => {
+        setLoading(true);
+
+        const response = await get(`/social-media/events/${eventId}`);
+
+        // get() devolve undefined tanto no 404 quanto em falha de rede
+        if (!response?.data?.event) {
+            setNotFound(true);
+        } else {
+            // resource aninhado em array não ganha o wrapper `data`, só o da raiz
+            setEvent(response.data.event as CommunityEvent);
+            setCommunity(response.data.community as Community);
+        }
+
+        setLoading(false);
+    }, [eventId]);
+
+    useEffect(() => {
+        loadEvent();
+    }, [loadEvent]);
+
+    async function handleDelete() {
+        if (!community) return;
+
+        try {
+            await remove(`/social-media/community/${community.id}/events/${eventId}`);
+
+            showToast({ title: "Eventos", message: "Evento removido.", status: "success" });
+            router.push("/social-media/events");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (error: any) {
+            showToast({
+                title: "Eventos",
+                message: error?.response?.data?.message ?? "Não foi possível apagar o evento.",
+                status: "error",
+            });
+        }
+    }
+
+    // um evento de um dia só não precisa repetir a data no fim
+    const sameDay = event?.date_start === event?.date_end;
+
+    return (
+        <>
+            <Sidebar />
+
+            <div className="flex flex-1 min-w-0 flex-col xl:flex-row gap-4">
+                <div className="flex-1 min-w-0 flex flex-col gap-4">
+
+                    {loading && (
+                        <Container className="rounded-card" padding="p-4" as="section">
+                            <div className="flex flex-col gap-3">
+                                <Skeleton width="w-40" height="h-5" rounded="field" />
+                                <Skeleton className="w-full aspect-video" rounded="card" />
+                                <Skeleton width="w-2/3" height="h-8" rounded="field" />
+                            </div>
+                        </Container>
+                    )}
+
+                    {!loading && notFound && (
+                        <Container className="rounded-card" padding="p-4" as="section">
+                            <div className="flex flex-col items-center gap-3 py-16 text-center">
+                                <TrophyIcon className="size-10 text-content-subtle" />
+                                <h1 className="text-lg font-semibold">Evento não encontrado</h1>
+                                <p className="max-w-sm text-sm text-content-muted">
+                                    Ele pode ter sido removido por quem administra a comunidade.
+                                </p>
+                                <Link
+                                    href="/social-media/events"
+                                    className="mt-2 rounded-field px-3 py-1 text-sm font-semibold text-brand
+                                        hover:bg-surface-2 transition-colors
+                                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                                >
+                                    Ver a agenda
+                                </Link>
+                            </div>
+                        </Container>
+                    )}
+
+                    {!loading && event && (
+                        <Container className="rounded-card overflow-hidden" padding="p-0" as="section">
+                            {event.photo && (
+                                <div className="relative w-full aspect-video sm:aspect-[3/1] bg-surface-2">
+                                    <Image
+                                        src={event.photo}
+                                        alt=""
+                                        fill
+                                        sizes="(max-width: 1280px) 100vw, 800px"
+                                        className="object-cover"
+                                        priority
+                                    />
+                                </div>
+                            )}
+
+                            <div className="flex flex-col gap-4 p-4">
+                                <Link
+                                    href="/social-media/events"
+                                    className="inline-flex w-fit items-center gap-2 text-sm font-semibold text-brand
+                                        rounded-field px-2 py-1 -ml-2 hover:bg-surface-2 transition-colors
+                                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                                >
+                                    <ArrowLeftIcon className="size-4" />
+                                    Voltar para a agenda
+                                </Link>
+
+                                <div className="flex flex-row flex-wrap items-start justify-between gap-3">
+                                    <div className="flex flex-col gap-2 min-w-0">
+                                        {event.is_past && (
+                                            <span className="w-fit rounded-full bg-surface-3 px-3 py-1
+                                                text-xs font-semibold text-content-muted">
+                                                Evento encerrado
+                                            </span>
+                                        )}
+
+                                        <h1 className="text-2xl font-semibold break-words">{event.title}</h1>
+                                    </div>
+
+                                    {event.can_delete && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="shrink-0 text-danger"
+                                            onClick={handleDelete}
+                                        >
+                                            Apagar evento
+                                        </Button>
+                                    )}
+                                </div>
+
+                                <dl className="flex flex-col gap-2 text-sm">
+                                    <div className="flex flex-row items-center gap-2">
+                                        <dt className="sr-only">Data</dt>
+                                        <CalendarIcon className="size-4 shrink-0 text-content-muted" />
+                                        <dd>
+                                            {sameDay
+                                                ? formatDate(event.date_start)
+                                                : `${formatDate(event.date_start)} a ${formatDate(event.date_end)}`}
+                                        </dd>
+                                    </div>
+
+                                    <div className="flex flex-row items-center gap-2">
+                                        <dt className="sr-only">Horário</dt>
+                                        <ClockIcon className="size-4 shrink-0 text-content-muted" />
+                                        <dd>
+                                            {formatTime(event.time_start)} às {formatTime(event.time_end)}
+                                        </dd>
+                                    </div>
+
+                                    <div className="flex flex-row items-center gap-2">
+                                        <dt className="sr-only">Local</dt>
+                                        <PinIcon className="size-4 shrink-0 text-content-muted" />
+                                        <dd className="break-words">{event.local}</dd>
+                                    </div>
+                                </dl>
+
+                                {event.description && (
+                                    <p className="text-sm text-content whitespace-pre-line break-words">
+                                        {event.description}
+                                    </p>
+                                )}
+
+                                {event.link && (
+                                    <a
+                                        href={event.link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-fit text-sm font-semibold text-brand hover:underline break-all
+                                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                                    >
+                                        {event.link}
+                                    </a>
+                                )}
+                            </div>
+                        </Container>
+                    )}
+                </div>
+
+                <aside aria-label="Comunidade organizadora" className="w-full xl:w-[340px] xl:shrink-0 flex flex-col gap-4">
+                    {!loading && community && (
+                        <Container className="rounded-card" padding="p-4">
+                            <div className="flex flex-row items-center justify-between mb-4">
+                                <h2 className="text-lg font-semibold">Organizado por</h2>
+                                <CommunityIcon className="size-5 text-content-muted" />
+                            </div>
+
+                            <Link
+                                href={`/social-media/communities/${community.id}`}
+                                className="flex flex-row items-center gap-3 rounded-card p-2 -m-2
+                                    hover:bg-surface-2 transition-colors
+                                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                            >
+                                <Image
+                                    src={community.photo || "/imgs/placeholder.png"}
+                                    alt=""
+                                    width={56}
+                                    height={56}
+                                    sizes="56px"
+                                    className="size-14 shrink-0 rounded-card object-cover bg-surface-2"
+                                />
+                                <div className="flex flex-col min-w-0">
+                                    <span className="text-base font-semibold truncate">{community.name}</span>
+                                    <span className="text-xs text-content-muted">
+                                        {community.viewer_role === "owner"
+                                            ? "Você é o dono"
+                                            : community.viewer_role === "admin"
+                                                ? "Você administra"
+                                                : community.viewer_role === "member"
+                                                    ? "Você participa"
+                                                    : "Você não participa"}
+                                    </span>
+                                </div>
+                            </Link>
+
+                            {community.description && (
+                                <p className="mt-3 text-sm text-content-muted break-words">
+                                    {community.description}
+                                </p>
+                            )}
+
+                            <Card className="mt-4 flex flex-col gap-3 p-3">
+                                <div className="flex flex-row items-center justify-between">
+                                    <span className="flex items-center gap-2 text-content-muted text-sm">
+                                        <UsersIcon className="size-4" />
+                                        Membros
+                                    </span>
+                                    <span className="text-sm font-semibold">{community.members_count ?? 0}</span>
+                                </div>
+                                <div className="flex flex-row items-center justify-between">
+                                    <span className="flex items-center gap-2 text-content-muted text-sm">
+                                        <TrophyIcon className="size-4" />
+                                        Eventos
+                                    </span>
+                                    <span className="text-sm font-semibold">{community.events_count ?? 0}</span>
+                                </div>
+                                <div className="flex flex-row items-center justify-between">
+                                    <span className="flex items-center gap-2 text-content-muted text-sm">
+                                        <MessageIcon className="size-4" />
+                                        Tópicos
+                                    </span>
+                                    <span className="text-sm font-semibold">{community.topics_count ?? 0}</span>
+                                </div>
+                            </Card>
+
+                            <Link
+                                href={`/social-media/communities/${community.id}`}
+                                className="mt-4 flex items-center justify-center rounded-full px-4 py-2
+                                    text-sm font-semibold text-brand hover:bg-surface-2 transition-colors
+                                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                            >
+                                Ver a comunidade
+                            </Link>
+                        </Container>
+                    )}
+
+                    <SidebarFooter />
+                </aside>
+            </div>
+        </>
+    );
+}
