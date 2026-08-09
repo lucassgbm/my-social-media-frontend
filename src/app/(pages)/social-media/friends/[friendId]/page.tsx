@@ -7,5 +7,5 @@ export default async function FriendPage({
 }) {
     const { friendId } = await params;
 
-    return <UserProfile profileName={decodeURIComponent(friendId)} />;
+    return <UserProfile identifier={decodeURIComponent(friendId)} />;
 }

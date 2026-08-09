@@ -35,7 +35,10 @@ type ProfileForm = {
     autodescription: string;
 };
 
-type ProfileErrors = Partial<Record<keyof ProfileForm | "photo", string>>;
+type ProfileErrors = Partial<Record<keyof ProfileForm | "photo" | "cover", string>>;
+
+/** Imagens do formulário — as duas seguem o mesmo fluxo de escolha e recorte. */
+type ImageTarget = "photo" | "cover";
 
 const EMPTY_FORM: ProfileForm = {
     name: "",
@@ -58,6 +61,12 @@ const UFS = [
 /** Limite do `max:280` da API — o contador do textarea usa o mesmo número. */
 const BIO_MAX = 280;
 
+/** Capa exibida no perfil enquanto o usuário não envia uma. */
+const DEFAULT_COVER = "/imgs/placeholder.png";
+
+/** Proporção do recorte da capa — a mesma do cabeçalho do perfil. */
+const COVER_ASPECT = 3;
+
 function ageFrom(birthdate: string): number | null {
     if (!birthdate) return null;
 
@@ -76,6 +85,76 @@ function ageFrom(birthdate: string): number | null {
     return age >= 0 ? age : null;
 }
 
+/**
+ * Estado de uma imagem do formulário: escolher arquivo → recortar →
+ * pré-visualizar → enviar.
+ *
+ * `cropped` é o recorte que vai para a API; `original` é o arquivo como veio do
+ * disco, guardado para permitir reenquadrar sem perder qualidade.
+ */
+function useImagePicker() {
+    const [cropped, setCropped] = useState<File | null>(null);
+    const [original, setOriginal] = useState<File | null>(null);
+    const [preview, setPreview] = useState<string | null>(null);
+    const [removed, setRemoved] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    // revoga a URL anterior a cada troca de arquivo e no unmount
+    useEffect(() => {
+        if (!preview) return;
+        return () => URL.revokeObjectURL(preview);
+    }, [preview]);
+
+    function clearInput() {
+        if (inputRef.current) inputRef.current.value = "";
+    }
+
+    return {
+        cropped,
+        original,
+        preview,
+        /** o usuário pediu para voltar à imagem padrão (só a capa oferece isso) */
+        removed,
+        inputRef,
+
+        /** guarda a escolha; a imagem só entra no formulário depois de enquadrada */
+        select(file: File) {
+            setOriginal(file);
+            setRemoved(false);
+        },
+
+        applyCrop(file: File) {
+            setCropped(file);
+            setPreview(URL.createObjectURL(file));
+        },
+
+        /**
+         * Cancelar o primeiro recorte descarta a escolha; se já existe um
+         * recorte aplicado, o anterior continua valendo.
+         */
+        cancelCrop() {
+            if (!cropped) setOriginal(null);
+        },
+
+        remove() {
+            setCropped(null);
+            setOriginal(null);
+            setPreview(null);
+            setRemoved(true);
+            clearInput();
+        },
+
+        /** depois de salvar, a imagem passa a vir de myInfo (URL do R2) */
+        reset() {
+            setCropped(null);
+            setOriginal(null);
+            setPreview(null);
+            setRemoved(false);
+            clearInput();
+        },
+    };
+}
+
 export default function EditProfilePage() {
     const { myInfo, setMyInfo } = useContext(AppContext);
     const { showToast } = useToaster();
@@ -84,13 +163,11 @@ export default function EditProfilePage() {
     const [errors, setErrors] = useState<ProfileErrors>({});
     const [saving, setSaving] = useState(false);
 
-    // `photo` é o recorte que vai para a API; `originalPhoto` é o arquivo como
-    // veio do disco, guardado para permitir reenquadrar sem perder qualidade
-    const [photo, setPhoto] = useState<File | null>(null);
-    const [originalPhoto, setOriginalPhoto] = useState<File | null>(null);
-    const [cropping, setCropping] = useState(false);
-    const [preview, setPreview] = useState<string | null>(null);
-    const fileRef = useRef<HTMLInputElement>(null);
+    const photoPicker = useImagePicker();
+    const coverPicker = useImagePicker();
+
+    // qual editor de recorte está aberto — os dois compartilham o componente
+    const [cropping, setCropping] = useState<ImageTarget | null>(null);
 
     // O layout busca /social-media/user no cliente, então myInfo chega depois da
     // primeira renderização: o formulário só é preenchido quando a resposta existe.
@@ -110,47 +187,50 @@ export default function EditProfilePage() {
         });
     }, [myInfo]);
 
-    // revoga a URL anterior a cada troca de arquivo e no unmount
-    useEffect(() => {
-        if (!preview) return;
-        return () => URL.revokeObjectURL(preview);
-    }, [preview]);
-
     const loading = !myInfo;
     const age = ageFrom(form.birthdate);
-    const avatar = preview ?? (myInfo?.photo || "/imgs/placeholder.png");
+
+    const avatar = photoPicker.preview ?? (myInfo?.photo || "/imgs/placeholder.png");
+
+    // enquanto a remoção não é salva, myInfo ainda traz a capa antiga: o
+    // `removed` é o que faz a tela mostrar a capa padrão desde já
+    const cover =
+        coverPicker.preview ??
+        (coverPicker.removed ? DEFAULT_COVER : myInfo?.cover || DEFAULT_COVER);
+
+    const hasCover = coverPicker.preview !== null || (!coverPicker.removed && !!myInfo?.cover);
 
     function setField<K extends keyof ProfileForm>(field: K, value: string) {
         setForm((current) => ({ ...current, [field]: value }));
         setErrors((current) => ({ ...current, [field]: undefined }));
     }
 
-    function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    function pickerFor(target: ImageTarget) {
+        return target === "photo" ? photoPicker : coverPicker;
+    }
+
+    function handleFileChange(e: React.ChangeEvent<HTMLInputElement>, target: ImageTarget) {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // o recorte é obrigatório: a foto só entra no formulário depois de
+        // o recorte é obrigatório: a imagem só entra no formulário depois de
         // enquadrada, então o que é enviado é sempre o que foi visto na tela
-        setOriginalPhoto(file);
-        setCropping(true);
-        setErrors((current) => ({ ...current, photo: undefined }));
+        pickerFor(target).select(file);
+        setCropping(target);
+        setErrors((current) => ({ ...current, [target]: undefined }));
 
         // permite reescolher o mesmo arquivo depois de cancelar o recorte
         e.target.value = "";
     }
 
-    function handleCropConfirm(croppedFile: File) {
-        setPhoto(croppedFile);
-        setPreview(URL.createObjectURL(croppedFile));
-        setCropping(false);
+    function handleCropConfirm(target: ImageTarget, croppedFile: File) {
+        pickerFor(target).applyCrop(croppedFile);
+        setCropping(null);
     }
 
-    function handleCropCancel() {
-        setCropping(false);
-
-        // cancelar o primeiro recorte descarta a escolha; se já existe um
-        // recorte aplicado, o anterior continua valendo
-        if (!photo) setOriginalPhoto(null);
+    function handleCropCancel(target: ImageTarget) {
+        pickerFor(target).cancelCrop();
+        setCropping(null);
     }
 
     /** Espelha as regras do UpdateUserRequest para evitar um 422 previsível. */
@@ -194,7 +274,12 @@ export default function EditProfilePage() {
         (Object.keys(form) as (keyof ProfileForm)[]).forEach((field) => {
             formData.append(field, form[field]);
         });
-        if (photo) formData.append("photo", photo);
+        if (photoPicker.cropped) formData.append("photo", photoPicker.cropped);
+
+        if (coverPicker.cropped) formData.append("cover", coverPicker.cropped);
+        // sem arquivo novo, só a flag distingue "não mexi na capa" de
+        // "quero voltar para a capa padrão"
+        else if (coverPicker.removed) formData.append("remove_cover", "1");
 
         try {
             const response = await postFormData("/social-media/user", formData);
@@ -221,11 +306,9 @@ export default function EditProfilePage() {
             // sem depender de um reload
             if (response?.data) setMyInfo(response.data as MyInfo);
 
-            // a foto agora vem de myInfo (URL do R2): o preview local sai de cena
-            setPhoto(null);
-            setOriginalPhoto(null);
-            setPreview(null);
-            if (fileRef.current) fileRef.current.value = "";
+            // as imagens agora vêm de myInfo (URL do R2): o preview local sai de cena
+            photoPicker.reset();
+            coverPicker.reset();
 
             showToast({
                 title: "Editar perfil",
@@ -264,6 +347,7 @@ export default function EditProfilePage() {
 
                     {loading ? (
                         <div className="flex flex-col gap-4 p-4">
+                            <Skeleton className="w-full aspect-[3/1]" rounded="card" />
                             <Skeleton className="size-[120px]" rounded="full" width="w-[120px]" />
                             {Array.from({ length: 5 }).map((_, index) => (
                                 <Skeleton key={index} className="h-11" rounded="field" />
@@ -271,6 +355,76 @@ export default function EditProfilePage() {
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-8 p-4">
+
+                            {/* ---------------------------------------------------- Capa */}
+                            <section className="flex flex-col gap-3">
+                                <h2 className="text-lg font-semibold">Foto de capa</h2>
+
+                                {/* mesma proporção do cabeçalho do perfil: o que
+                                    aparece aqui é o que vai aparecer lá */}
+                                <div className="relative w-full aspect-[3/1] overflow-hidden rounded-card border border-line">
+                                    <Image
+                                        src={cover}
+                                        alt="Sua foto de capa"
+                                        fill
+                                        sizes="(max-width: 1024px) 100vw, 720px"
+                                        className="object-cover"
+                                    />
+                                </div>
+
+                                <div className="flex flex-col items-start gap-2">
+                                    <div className="flex flex-row flex-wrap gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => coverPicker.inputRef.current?.click()}
+                                        >
+                                            <PhotoIcon className="size-4" />
+                                            {hasCover ? "Trocar capa" : "Escolher capa"}
+                                        </Button>
+
+                                        {coverPicker.original && (
+                                            <Button
+                                                variant="secondary"
+                                                size="sm"
+                                                onClick={() => setCropping("cover")}
+                                            >
+                                                <PencilSquareIcon className="size-4" />
+                                                Ajustar recorte
+                                            </Button>
+                                        )}
+
+                                        {hasCover && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => coverPicker.remove()}
+                                            >
+                                                Remover capa
+                                            </Button>
+                                        )}
+                                    </div>
+
+                                    <p className="text-xs text-content-muted">
+                                        Imagens largas funcionam melhor. Sem capa própria, o perfil
+                                        usa a imagem padrão.
+                                    </p>
+
+                                    {errors.cover && (
+                                        <span role="alert" className="text-xs text-danger">
+                                            {errors.cover}
+                                        </span>
+                                    )}
+                                </div>
+
+                                <input
+                                    ref={coverPicker.inputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    className="sr-only"
+                                    onChange={(e) => handleFileChange(e, "cover")}
+                                />
+                            </section>
 
                             {/* ---------------------------------------------------- Foto */}
                             <section className="flex flex-col gap-3">
@@ -293,19 +447,19 @@ export default function EditProfilePage() {
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                onClick={() => fileRef.current?.click()}
+                                                onClick={() => photoPicker.inputRef.current?.click()}
                                             >
                                                 <PhotoIcon className="size-4" />
-                                                {photo ? "Trocar imagem" : "Escolher imagem"}
+                                                {photoPicker.cropped ? "Trocar imagem" : "Escolher imagem"}
                                             </Button>
 
                                             {/* reabre o editor com o arquivo original, então
                                                 reenquadrar não acumula perda de qualidade */}
-                                            {originalPhoto && (
+                                            {photoPicker.original && (
                                                 <Button
                                                     variant="secondary"
                                                     size="sm"
-                                                    onClick={() => setCropping(true)}
+                                                    onClick={() => setCropping("photo")}
                                                 >
                                                     <PencilSquareIcon className="size-4" />
                                                     Ajustar recorte
@@ -325,11 +479,11 @@ export default function EditProfilePage() {
                                     </div>
 
                                     <input
-                                        ref={fileRef}
+                                        ref={photoPicker.inputRef}
                                         type="file"
                                         accept="image/*"
                                         className="sr-only"
-                                        onChange={handleFileChange}
+                                        onChange={(e) => handleFileChange(e, "photo")}
                                     />
                                 </div>
                             </section>
@@ -459,8 +613,22 @@ export default function EditProfilePage() {
                     <Container className="rounded-card" padding="p-4">
                         <h2 className="text-lg font-semibold mb-4">Pré visualização</h2>
 
+                        {/* capa e avatar sobrepostos como no cabeçalho do perfil */}
+                        <div className="relative w-full aspect-[3/1] overflow-hidden rounded-card">
+                            <Image
+                                src={cover}
+                                alt=""
+                                fill
+                                sizes="(max-width: 1024px) 100vw, 320px"
+                                className="object-cover"
+                            />
+                        </div>
+
                         <div className="flex flex-col items-center text-center gap-2">
-                            <RingImage className="w-[88px]">
+                            {/* -mt sobe o avatar sobre a capa; relative z-10 é
+                                obrigatório porque a capa é uma <Image fill> e,
+                                sendo posicionada, seria pintada por cima */}
+                            <RingImage className="relative z-10 -mt-11 w-[88px]">
                                 <Image
                                     src={avatar}
                                     alt=""
@@ -495,16 +663,31 @@ export default function EditProfilePage() {
             </div>
 
             <ImageCropper
-                isOpen={cropping}
-                file={originalPhoto}
-                onCancel={handleCropCancel}
-                onConfirm={handleCropConfirm}
+                isOpen={cropping === "photo"}
+                file={photoPicker.original}
+                onCancel={() => handleCropCancel("photo")}
+                onConfirm={(file) => handleCropConfirm("photo", file)}
                 title="Recortar foto de perfil"
                 // avatar é sempre circular na aplicação: recorte quadrado com
                 // máscara redonda mostra exatamente o que vai aparecer
                 aspect={1}
                 cropShape="round"
                 outputSize={512}
+            />
+
+            <ImageCropper
+                isOpen={cropping === "cover"}
+                file={coverPicker.original}
+                onCancel={() => handleCropCancel("cover")}
+                onConfirm={(file) => handleCropConfirm("cover", file)}
+                title="Recortar foto de capa"
+                // a capa é uma faixa larga: recorte retangular na mesma
+                // proporção do cabeçalho do perfil
+                aspect={COVER_ASPECT}
+                cropShape="rect"
+                // faixa larga precisa de mais pixels que o avatar para não
+                // ficar borrada em telas grandes
+                outputSize={1600}
             />
         </>
     );

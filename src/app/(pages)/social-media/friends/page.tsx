@@ -5,21 +5,15 @@ import { get, post } from "@/api/services/request";
 import Container from "../../../../../components/container";
 import Sidebar from "../../../../../components/sidebar";
 import CardUser from "../../../../../components/users/card-user";
+import PeopleSuggestions from "../../../../../components/users/people-suggestions";
 import RequestFriend from "../../../../../components/friends/request-friend";
 import Skeleton from "../../../../../components/skeleton";
 import SearchIcon from "../../../../../components/icons/search";
 import CloseIcon from "../../../../../components/icons/close";
 import UsersIcon from "../../../../../components/icons/users";
 import InboxIcon from "../../../../../components/icons/inbox";
-import { suggestedFriends } from "../../../../../mocks/suggestions";
 import { useToaster } from "../../../../../providers/toaster-provider";
-
-type Person = {
-    id: number;
-    name: string;
-    photo?: string | null;
-    autodescription?: string | null;
-};
+import type { Person } from "../../../../../utils/friendship";
 
 type Tab = "friends" | "requests";
 
@@ -80,7 +74,9 @@ export default function Home() {
         const accepted = requests.find((person) => person.id === userId);
 
         setRequests((current) => current.filter((person) => person.id !== userId));
-        if (accepted) setFriends((current) => [accepted, ...current]);
+        if (accepted) {
+            setFriends((current) => [{ ...accepted, friendship_status: "friends" }, ...current]);
+        }
 
         showToast({
             title: "Amigos",
@@ -90,8 +86,22 @@ export default function Home() {
         setAcceptingId(null);
     }
 
-    function declineRequest(userId: number) {
-        // Sem endpoint de recusa na API ainda: some da lista só nesta sessão.
+    async function declineRequest(userId: number) {
+        setAcceptingId(userId);
+
+        const response = await post("/social-media/friends/decline", { user_id: userId });
+
+        setAcceptingId(null);
+
+        if (!response) {
+            showToast({
+                title: "Amigos",
+                message: "Não foi possível recusar a solicitação.",
+                status: "error",
+            });
+            return;
+        }
+
         setRequests((current) => current.filter((person) => person.id !== userId));
     }
 
@@ -201,15 +211,7 @@ export default function Home() {
                             <div className={GRID}>
                                 {tab === "friends"
                                     ? filtered.map((person) => (
-                                        <CardUser
-                                            key={person.id}
-                                            user={{
-                                                id: person.id,
-                                                name: person.name,
-                                                photo_path: person.photo ?? "/imgs/placeholder.png",
-                                                title: person.autodescription ?? "",
-                                            }}
-                                        />
+                                        <CardUser key={person.id} user={person} />
                                     ))
                                     : (
                                         <RequestFriend
@@ -257,11 +259,7 @@ export default function Home() {
                 <aside aria-label="Sugestões" className="w-full flex flex-col lg:w-[28%] gap-4">
                     <Container className="rounded-card" padding="p-4">
                         <h2 className="text-lg font-semibold mb-4">Amigos sugeridos</h2>
-                        <div className="grid grid-cols-2 gap-4">
-                            {suggestedFriends.slice(0, 6).map((user) => (
-                                <CardUser user={user} key={user.id} />
-                            ))}
-                        </div>
+                        <PeopleSuggestions limit={6} gridClassName="grid grid-cols-2 gap-4" />
                     </Container>
                 </aside>
             </div>

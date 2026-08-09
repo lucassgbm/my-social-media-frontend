@@ -33,7 +33,7 @@ export default function RequestFriend({
                     key={friend.id}
                 >
                     <Link
-                        href={`/social-media/user/${friend.name}`}
+                        href={`/social-media/profile/${friend.id}`}
                         className="rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
                     >
                         <RingImage className="cursor-pointer w-[88px]">

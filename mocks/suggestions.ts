@@ -2,15 +2,10 @@
  * Dados de demonstração usados enquanto os endpoints reais não existem.
  * Mantidos fora das páginas para que a troca por dados da API seja um
  * único ponto de mudança.
+ *
+ * Pessoas saíram daqui: amigos, sugestões e membros vêm da API
+ * (/social-media/friends, /friends/suggestions e /community/{id}).
  */
-
-export type SuggestedUser = {
-  id: number;
-  name: string;
-  title: string;
-  photo_path: string;
-  location?: string;
-};
 
 export type SuggestedCommunity = {
   id: number;
@@ -29,58 +24,6 @@ export type SuggestedEvent = {
   time: string;
   image: string;
 };
-
-export const suggestedFriends: SuggestedUser[] = [
-  {
-    id: 1,
-    name: "João",
-    title: "Estudante",
-    photo_path:
-      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80",
-  },
-  {
-    id: 2,
-    name: "Maria",
-    title: "Maquiadora",
-    photo_path:
-      "https://images.unsplash.com/photo-1769097137026-c482044ca0fb?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDE5fHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
-  },
-  {
-    id: 3,
-    name: "Pedro",
-    title: "Desenvolvedor Full Stack",
-    photo_path:
-      "https://images.unsplash.com/photo-1770191954591-952ab5c63e68?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDkyfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
-  },
-  {
-    id: 4,
-    name: "Ana",
-    title: "Dentista",
-    photo_path:
-      "https://images.unsplash.com/photo-1770576568718-6747e3d85de8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDMzfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
-  },
-  {
-    id: 5,
-    name: "Pedro",
-    title: "Empresário",
-    photo_path:
-      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=880&q=80",
-  },
-  {
-    id: 6,
-    name: "Maria",
-    title: "Dentista",
-    photo_path:
-      "https://images.unsplash.com/photo-1770576568718-6747e3d85de8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDMzfHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
-  },
-  {
-    id: 7,
-    name: "Maria",
-    title: "Advogada",
-    photo_path:
-      "https://images.unsplash.com/photo-1769097137026-c482044ca0fb?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDE5fHRvd0paRnNrcEdnfHxlbnwwfHx8fHw%3D",
-  },
-];
 
 export const suggestedCommunities: SuggestedCommunity[] = [
   {
@@ -107,29 +50,6 @@ export const suggestedCommunities: SuggestedCommunity[] = [
     photo_path:
       "https://images.unsplash.com/photo-1567818668259-e66acac21610?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8ODJ8fGNhcnJvc3xlbnwwfHwwfHx8MA%3D%3D",
   },
-];
-
-export type CommunityTopic = {
-  id: number;
-  title: string;
-  replies: number;
-  image: string;
-};
-
-export const communityTopics: CommunityTopic[] = [
-  { id: 1, title: "Qual pneu vocês usam no treino?", replies: 12, image: "/imgs/drift.jpg" },
-  { id: 2, title: "Encontro de sábado — confirmados", replies: 34, image: "/imgs/drift.jpg" },
-  { id: 3, title: "Dicas para quem está começando", replies: 8, image: "/imgs/drift.jpg" },
-  { id: 4, title: "Peças usadas: compra e venda", replies: 51, image: "/imgs/drift.jpg" },
-];
-
-export const communityGallery: { id: number; image: string }[] = [
-  { id: 1, image: "/imgs/drift.jpg" },
-  { id: 2, image: "/imgs/drift.jpg" },
-  { id: 3, image: "/imgs/drift.jpg" },
-  { id: 4, image: "/imgs/drift.jpg" },
-  { id: 5, image: "/imgs/drift.jpg" },
-  { id: 6, image: "/imgs/drift.jpg" },
 ];
 
 export const suggestedEvents: SuggestedEvent[] = [

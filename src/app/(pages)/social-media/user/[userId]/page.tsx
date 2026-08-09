@@ -7,5 +7,5 @@ export default async function UserPage({
 }) {
     const { userId } = await params;
 
-    return <UserProfile profileName={decodeURIComponent(userId)} />;
+    return <UserProfile identifier={decodeURIComponent(userId)} />;
 }
