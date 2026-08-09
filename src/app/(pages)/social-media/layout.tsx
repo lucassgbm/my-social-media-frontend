@@ -18,6 +18,9 @@ export type MyInfo = {
   photo: string;
   /** Caminho cru no bucket, sem assinatura. */
   photo_url?: string | null;
+  /** Capa do perfil: URL assinada do R2, null enquanto o usuário não enviou uma. */
+  cover?: string | null;
+  cover_url?: string | null;
   autodescription: string;
   birthdate?: string | null;
   age?: number | null;

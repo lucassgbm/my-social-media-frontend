@@ -4,8 +4,7 @@ import Image from "../../../../components/remote-image";
 
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import InfoIcon from "../../../../components/icons/info";
-import MoneyIcon from "../../../../components/icons/money";
+import Link from "next/link";
 import Feed from "../../../../components/feed";
 import Container from "../../../../components/container";
 import Modal from "../../../../components/modal";
@@ -22,44 +21,21 @@ import Card from "../../../../components/card";
 import LoadingSpinner from "../../../../components/loading-spinner";
 import CalendarIcon from "../../../../components/icons/calendar";
 import PinIcon from "../../../../components/icons/pin";
-import ClockIcon from "../../../../components/icons/clock";
 import CommunityIcon from "../../../../components/icons/community";
 import Sidebar from "../../../../components/sidebar";
 import SidebarFooter from "../../../../components/sidebar-footer";
 import UsersIcon from "../../../../components/icons/users";
-import CardUser from "../../../../components/users/card-user";
+import PeopleSuggestions from "../../../../components/users/people-suggestions";
 import ShowMore from "../../../../components/show-more";
-import CardEvent from "../../../../components/events/card-event";
-import { suggestedFriends, suggestedEvents } from "../../../../mocks/suggestions";
+import EventCard from "../../../../components/communities/event-card";
 import { useToaster } from "../../../../providers/toaster-provider";
+import type { Community, CommunityEvent } from "../../../../utils/community";
 
 interface NewPost {
   description: string;
   photo_path: File | "";
 }
 
-interface EventCommunity {
-  title: string;
-  description: string;
-  photo?: string | null;
-  date_start: string;
-  date_end: string;
-  time_start: string;
-  time_end: string;
-  local: string;
-  link?: string;
-}
-
-interface Communities {
-  Community: [];
-}
-
-interface Community {
-  id: number;
-  name: string;
-  description: string;
-  photo?: string | null;
-}
 
 export default function Home() {
   const { showToast } = useToaster();
@@ -67,7 +43,7 @@ export default function Home() {
 
   useEffect(() => {
     getFeed();
-    getEvent();
+    getEvents();
     getCommunities();
   }, []);
 
@@ -80,8 +56,10 @@ export default function Home() {
     photo_path: "",
   });
   const [feed, setFeed] = useState([]);
-  const [communities, setCommunities] = useState<Communities | null>(null);
-  const [event, setEvent] = useState<EventCommunity | null>(null);
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const [loadingCommunities, setLoadingCommunities] = useState(true);
+  const [events, setEvents] = useState<CommunityEvent[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
   const context = useContext(AppContext);
   const { myInfo } = context;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -155,26 +133,31 @@ export default function Home() {
     setLoadingFeed(false);
   }
 
-  async function getEvent() {
+  /** Os próximos eventos das comunidades de que o usuário participa. */
+  async function getEvents() {
 
+    setLoadingEvents(true);
     try {
-      const response = await get("/social-media/community-event/random-event");
-      setEvent(response.data);
-    } catch (error: any) {
+      const response = await get("/social-media/events?filter=upcoming");
+      setEvents(response?.data ?? []);
+    } catch {
 
-      showToast({ message: "Erro ao carregar Evento", status: 'error', title: "Evento"});
+      showToast({ message: "Erro ao carregar Eventos", status: 'error', title: "Eventos"});
     }
+    setLoadingEvents(false);
   }
 
   async function getCommunities() {
 
+    setLoadingCommunities(true);
     try {
       const response = await get("/social-media/community?page=1");
-      setCommunities(response.data);
-    } catch (error: any) {
+      setCommunities(response?.data ?? []);
+    } catch {
 
       showToast({ message: "Erro ao carregar Comunidades", status: 'error', title: "Comunidades"});
     }
+    setLoadingCommunities(false);
   }
 
   return (
@@ -273,103 +256,44 @@ export default function Home() {
               aria-label="Sugestões"
               className="hidden lg:block relative w-[320px] shrink-0"
             >
-                {/* {event && (
-                  <Container className="mb-4 rounded-card">
-                  
-                    <div className="flex flex-row justify-between">
-
-                      <h2 className="text-sm font-semibold mb-4">Próximo Evento</h2>
-                      <CalendarIcon />
-                    </div>
-
-                    <CardEvent event={event} />
-                  </Container>
-                )} */}
-
-                {event?.length === 0 && (
-                  <Container className="mb-4 rounded-card">
-                    <div className="flex flex-row justify-between">
-
-                      <h2 className="text-sm font-semibold mb-4">Próximo Evento</h2>
-                      <CalendarIcon />
-                    </div>
-
-                    <Card className="flex flex-col justify-center bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border border-orange-200 dark:border-orange-800 rounded-xl cursor-pointer hover:shadow-md">
-                      <div className="flex flex-col sm:flex-row mb-4 items-center">
-                        
-                        <h2 className="text-md font-semibold">Nenhum evento próximo</h2>
-                      </div>
-                      <div className="p-2 bg-white/70 dark:bg-black/20 rounded-lg">
-                        <div className="flex items-center gap-2 text-xs">
-                          <PinIcon className="size-3 text-red-500"/>
-                          <span className="font-semibold text-xs"></span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs">
-                          <CalendarIcon className="size-3 text-orange-500"/>
-                        </div>
-                        
-                        
-                      </div>
-                      <div className="flex flex-row justify-center gap-2 mt-4">
-
-                        <Button>
-                          <InfoIcon />
-                        </Button>
-
-                        {event?.link && (
-
-                          <Button>
-                            <MoneyIcon />
-                          </Button>
-
-                        )}
-
-                      </div>
-
-                    </Card>
-                  </Container>
-                )}
-
-                {!event && (
-                  <Container className="mb-4 rounded-card">
-                    <div className="flex flex-row justify-center">
-
-                      <Skeleton rounded="md" height="h-[25px]" width="w-[100px]" />
-                    </div>
-                    <div className="flex flex-col h-full mt-2">
-                      <div className="flex flex-col sm:flex-row items-center mb-4 gap-4">
-
-                        <Skeleton rounded="md" height="h-[70px]" width="w-[70px]" />
-                        <Skeleton rounded="md" height="h-[25px]" width="w-[90px]" />
-
-                      </div>
-                      <Skeleton rounded="2xl" height="h-[60px]" width="w-[full]" />
-
-                      <div className="flex flex-row justify-center gap-2 mt-4">
-
-                        <Skeleton rounded="full" height="h-[35px]" width="w-[35px]" />
-
-                        <Skeleton rounded="full" height="h-[35px]" width="w-[35px]" />
-
-                      </div>
-
-                    </div>
-                  
-                  </Container>
-                )}
-
               <Container className="mb-4 rounded-card">
                 <div className="flex flex-row justify-between mb-4">
-                  <h2 className="text-sm font-semibold">Eventos sugeridos</h2>
+                  <h2 className="text-sm font-semibold">Próximos eventos</h2>
                   <CalendarIcon />
                 </div>
-                <div className="flex flex-col gap-4">
-                  {suggestedEvents.map((event) => (
-                    
-                    <CardEvent event={event} key={event.id} />
-                  ))}
-                </div>
-                
+
+                {loadingEvents && (
+                  <div className="flex flex-col gap-4">
+                    {Array.from({ length: 2 }).map((_, index) => (
+                      <Skeleton key={index} height="h-[150px]" rounded="card" />
+                    ))}
+                  </div>
+                )}
+
+                {!loadingEvents && events.length > 0 && (
+                  <div className="flex flex-col gap-4">
+                    {/* a agenda inteira fica em /social-media/events; aqui só o
+                        começo dela */}
+                    {events.slice(0, 3).map((item) => (
+                      <EventCard
+                        key={item.id}
+                        event={item}
+                        href={`/social-media/events/${item.id}`}
+                        showCommunity
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {!loadingEvents && events.length === 0 && (
+                  <div className="flex flex-col items-center gap-2 py-6 text-center">
+                    <CalendarIcon className="size-8 text-content-subtle" />
+                    <p className="text-xs text-content-muted">
+                      Nenhum evento marcado nas suas comunidades.
+                    </p>
+                  </div>
+                )}
+
                 <ShowMore onClick={() => router.push('/social-media/events')} />
 
               </Container>
@@ -378,12 +302,10 @@ export default function Home() {
                     <h2 className="text-sm font-semibold">Conecte com outras pessoas</h2>
                     <UsersIcon className="size-5" />
                   </div>
-                  <div className="grid grid-cols-2 gap-2 pt-4">
-                      {suggestedFriends.map((friend) => (
-                          <CardUser user={friend} key={friend.id} />
-                      ))}
+                  <div className="pt-4">
+                    <PeopleSuggestions limit={6} gridClassName="grid grid-cols-2 gap-2" />
                   </div>
-                  <ShowMore onClick={() => router.push('/social-media/events')} />
+                  <ShowMore onClick={() => router.push('/social-media/friends')} />
 
               </Container>
               <Container className="mb-4 rounded-card">
@@ -391,69 +313,67 @@ export default function Home() {
                     <h2 className="text-sm font-semibold">Comunidades</h2>
                     <CommunityIcon className="size-5" />
                   </div>
-                  {!communities && (
+                  {loadingCommunities && (
                     <>
-                      <Skeleton className="mt-4" width="w-full" rounded="xl" height="h-[94px]" />
                       <Skeleton className="mt-4" width="w-full" rounded="xl" height="h-[94px]" />
                       <Skeleton className="mt-4" width="w-full" rounded="xl" height="h-[94px]" />
                       <Skeleton className="mt-4" width="w-full" rounded="xl" height="h-[94px]" />
                     </>
                   )}
 
-                  {communities && (
-
-                    communities.map((community: Community, index: number) => {
-                      
-                      return (
-                        
-                        <Card className="flex flex-col justify-center mt-4 cursor-pointer transition-shadow hover:shadow-md" key={index}>
-                          <div className="flex flex-row items-center rounded-sm mb-2">
-                            <Image
-                              src={community.photo ?? "/imgs/placeholder.png"}
-                              alt="Foto de perfil"
-                              className="rounded-full w-[40px] aspect-[1/1] mr-2 hover:opacity-90 object-cover"
-                              width={110}
-                              height={110}
-                              priority
-                            />
-                            <div className="flex flex-col text-left">
-                              <h3 className="text-xs font-semibold">{community.name}</h3>
-                              <p className="text-xs font-normal w-full" 
-
-                              >
-                                {community.description && community.description.length > 30
-                                ? community.description.slice(0, 30) + "..."
-                                : community.description}
-                                {/* {community.description} */}
+                  {!loadingCommunities && communities.slice(0, 4).map((community) => (
+                    <Link
+                      href={`/social-media/communities/${community.id}`}
+                      key={community.id}
+                      className="block mt-4 rounded-card
+                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                    >
+                      <Card className="flex flex-col justify-center transition-shadow hover:shadow-md">
+                        <div className="flex flex-row items-center gap-2 rounded-sm mb-2 min-w-0">
+                          <Image
+                            src={community.photo ?? "/imgs/placeholder.png"}
+                            alt=""
+                            className="rounded-full w-10 aspect-square object-cover shrink-0"
+                            width={40}
+                            height={40}
+                            sizes="40px"
+                          />
+                          <div className="flex flex-col text-left min-w-0">
+                            <h3 className="text-xs font-semibold truncate">{community.name}</h3>
+                            {community.description && (
+                              <p className="text-xs font-normal text-content-muted line-clamp-2">
+                                {community.description}
                               </p>
-                            </div>
+                            )}
                           </div>
-                          <div className="w-full flex flex-row items-center border-t border-line p-1">
-                            <Image
-                              src="/imgs/bmw.jpg"
-                              alt="Foto de perfil"
-                              className="rounded-full w-[20px] mr-2 hover:opacity-90"
-                              width={20}
-                              height={20}
-                              priority
-                            />
-                            <Image
-                              src="/imgs/bmw.jpg"
-                              alt="Foto de perfil"
-                              className="rounded-full w-[20px] ml-[-16px] hover:opacity-90"
-                              width={20}
-                              height={20}
-                              priority
-                            />
-                            <span className="text-xs font-semibold ml-auto">243 join</span>
-                          </div>
-                        </Card>
-                      
+                        </div>
 
-                      );
+                        {/* o rodapé eram dois avatares fixos de /imgs/bmw.jpg e
+                            um "243 join" cravado no código */}
+                        <div className="w-full flex flex-row items-center gap-2 border-t border-line pt-2">
+                          <UsersIcon className="size-4 text-content-muted" />
+                          <span className="text-xs text-content-muted">
+                            {community.members_count === 1
+                              ? "1 membro"
+                              : `${community.members_count ?? 0} membros`}
+                          </span>
 
-                    } 
+                          {["owner", "admin", "member"].includes(community.viewer_role) && (
+                            <span className="ml-auto rounded-full bg-brand-subtle px-2 py-0.5 text-[11px] font-semibold text-brand">
+                              Participando
+                            </span>
+                          )}
+                        </div>
+                      </Card>
+                    </Link>
                   ))}
+
+                  {!loadingCommunities && communities.length === 0 && (
+                    <p className="py-6 text-center text-xs text-content-muted">
+                      Nenhuma comunidade por aqui ainda.
+                    </p>
+                  )}
+
                   <ShowMore onClick={() => router.push('/social-media/communities')} />
               </Container>
               <SidebarFooter />

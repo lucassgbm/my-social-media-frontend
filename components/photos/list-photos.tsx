@@ -8,7 +8,7 @@ export default function ListPhotos() {
 
                 <div className="w-[120px] flex flex-col">
                     <Image
-                        src="/imgs/drift.jpg"
+                        src="/imgs/placeholder.png"
                         alt="Foto de perfil"
                         className="rounded-md w-[120px] mr-4 hover:opacity-90"
                         width={120}
@@ -20,7 +20,7 @@ export default function ListPhotos() {
                 </div>
                 <div className="w-[120px] flex flex-col">
                     <Image
-                        src="/imgs/drift.jpg"
+                        src="/imgs/placeholder.png"
                         alt="Foto de perfil"
                         className="rounded-md w-[120px] mr-4 hover:opacity-90"
                         width={120}

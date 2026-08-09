@@ -259,7 +259,7 @@ export default function Feed({ feed }: FeedProps) {
                 acima deles. A foto tem altura fixa (POST_IMAGE_HEIGHT) em vez de
                 ocupar a coluna inteira — era o `h-full` que fazia a altura variar
                 com a janela. O que sobra da coluna é da descrição. */}
-            <div className="flex min-h-0 flex-col gap-3 sm:w-[44%] sm:shrink-0">
+            <div className="flex min-h-0 flex-col gap-3 sm:w-[30%] sm:shrink-0">
 
               {activePost.photo_path && (
                 <div

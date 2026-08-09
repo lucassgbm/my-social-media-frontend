@@ -1,0 +1,118 @@
+import type { Person } from "./friendship";
+
+/**
+ * Papel de quem está vendo a comunidade, resolvido pela CommunityPolicy no
+ * backend. O front não recalcula regra nenhuma: usa `can_*` para decidir os
+ * botões e este papel só para rotular.
+ */
+export type CommunityRole = "owner" | "admin" | "member" | "blocked" | "none";
+
+export type CommunityMember = Person & {
+    community_role: "owner" | "admin" | "member";
+    blocked: boolean;
+    /** O visitante pode expulsar/bloquear esta pessoa. */
+    can_moderate: boolean;
+    /** O visitante pode promovê-la ou rebaixá-la (só o dono pode). */
+    can_assign_role: boolean;
+};
+
+export type Community = {
+    id: number;
+    name: string;
+    description?: string | null;
+    photo?: string | null;
+    owner_id: number;
+    owner?: Person | null;
+    members?: CommunityMember[];
+    members_count?: number;
+    topics_count?: number;
+    photos_count?: number;
+    events_count?: number;
+    viewer_role: CommunityRole;
+    can_manage: boolean;
+    can_moderate: boolean;
+    can_participate: boolean;
+    can_assign_roles: boolean;
+};
+
+export type CommunityTopicComment = {
+    id: number;
+    content: string;
+    created_at: string;
+    author?: Person | null;
+    can_delete: boolean;
+};
+
+/** Recorte da comunidade que acompanha o tópico, para o cabeçalho da tela. */
+export type CommunityBrief = {
+    id: number;
+    name: string;
+    photo?: string | null;
+};
+
+export type CommunityTopic = {
+    id: number;
+    community_id: number;
+    community?: CommunityBrief | null;
+    title: string;
+    description?: string | null;
+    created_at: string;
+    author?: Person | null;
+    comments_count?: number;
+    comments?: CommunityTopicComment[];
+    can_delete: boolean;
+    can_comment: boolean;
+};
+
+export type CommunityPhoto = {
+    id: number;
+    photo: string | null;
+    description?: string | null;
+    created_at: string;
+    author?: Person | null;
+    can_delete: boolean;
+};
+
+export type CommunityEvent = {
+    id: number;
+    title: string;
+    description: string;
+    local: string;
+    link?: string | null;
+    date_start: string;
+    date_end: string;
+    time_start: string;
+    time_end: string;
+    photo?: string | null;
+    can_delete: boolean;
+    /** Presente na agenda geral, que mistura eventos de várias comunidades. */
+    community?: CommunityBrief | null;
+    /** Já terminou — o corte é por `date_end`. */
+    is_past?: boolean;
+};
+
+/** Filtros da agenda pessoal (/social-media/events). */
+export type EventFilter = "upcoming" | "past" | "all";
+
+/** Rótulo do papel para os badges dos cards. */
+export function roleLabel(role: CommunityMember["community_role"]): string | null {
+    if (role === "owner") return "Dono";
+    if (role === "admin") return "Admin";
+
+    return null;
+}
+
+/** "2026-10-01" -> "01/10/2026"; devolve o original se vier em outro formato. */
+export function formatDate(value?: string | null): string {
+    if (!value) return "";
+
+    const [date] = value.split("T");
+    const parts = date.split("-");
+
+    return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : date;
+}
+
+/** "18:00:00" -> "18:00" */
+export function formatTime(value?: string | null): string {
+    return value ? value.slice(0, 5) : "";
+}

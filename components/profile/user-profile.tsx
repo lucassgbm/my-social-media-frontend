@@ -1,10 +1,9 @@
 'use client';
 
-import { useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "../remote-image";
 import Container from "../container";
-import Card from "../card";
 import RingImage from "../ring-image";
 import Button from "../button";
 import ColorButton from "../color-button";
@@ -13,9 +12,10 @@ import Modal from "../modal";
 import Skeleton from "../skeleton";
 import LoadingSpinner from "../loading-spinner";
 import CardUser from "../users/card-user";
+import AddFriendButton from "../users/add-friend-button";
+import PeopleSuggestions from "../users/people-suggestions";
 import Sidebar from "../sidebar";
 import SidebarFooter from "../sidebar-footer";
-import ProfileIcon from "../icons/profile";
 import MessageIcon from "../icons/message";
 import PencilSquareIcon from "../icons/pencil-square";
 import CameraIcon from "../icons/camera";
@@ -28,10 +28,12 @@ import HeartIcon from "../icons/heart";
 import PinIcon from "../icons/pin";
 import UsersIcon from "../icons/users";
 import CommunityIcon from "../icons/community";
-import { AppContext } from "@/app/(pages)/social-media/layout";
+import CommunityCard from "../communities/community-card";
+import CommunitySuggestions from "../communities/community-suggestions";
 import { get, postFormData } from "@/api/services/request";
-import { suggestedFriends, suggestedCommunities } from "../../mocks/suggestions";
 import { useToaster } from "../../providers/toaster-provider";
+import { locationOf, type FriendshipStatus, type Person } from "../../utils/friendship";
+import type { Community } from "../../utils/community";
 
 interface UserPhoto {
     id: number;
@@ -54,6 +56,17 @@ interface Post {
     comments: { count: number };
 }
 
+/** Espelha App\Http\Resources\PublicProfileResource. */
+type PublicProfile = Person & {
+    cover?: string | null;
+    friendship_status: FriendshipStatus;
+    friends_count: number;
+    photos_count: number;
+    communities_count: number;
+    friends: Person[];
+    communities: Community[];
+};
+
 type Tab = "friends" | "photos" | "communities";
 
 const TABS: { id: Tab; label: string; icon: typeof UsersIcon }[] = [
@@ -62,23 +75,23 @@ const TABS: { id: Tab; label: string; icon: typeof UsersIcon }[] = [
     { id: "communities", label: "Comunidades", icon: CommunityIcon },
 ];
 
+const DEFAULT_COVER = "/imgs/placeholder.png";
+
 /**
  * Tela de perfil compartilhada por /social-media/user/[userId],
  * /social-media/profile/[profileId] e /social-media/friends/[friendId].
- * As três rotas eram cópias byte a byte deste arquivo — qualquer ajuste
- * precisava ser repetido três vezes e elas já haviam divergido.
+ *
+ * O `identifier` da rota pode ser o id ou o nome da pessoa — a API resolve os
+ * dois. Antes só o próprio perfil tinha dados: para qualquer outra pessoa a
+ * tela caía num placeholder, porque o único endpoint de usuário era o do
+ * logado. Amigos, fotos e posts agora são sempre de quem está sendo visitado.
  */
-export default function UserProfile({ profileName }: { profileName: string }) {
+export default function UserProfile({ identifier }: { identifier: string }) {
     const { showToast } = useToaster();
 
-    const { myInfo } = useContext(AppContext);
-
-    // Só existe endpoint para o usuário logado (/social-media/user). Enquanto
-    // não houver um "buscar usuário por nome", o perfil de terceiros mostra o
-    // nome da rota e os dados ficam vazios em vez de exibir os seus.
-    const isOwnProfile = !!myInfo && myInfo.name === profileName;
-    const profilePhoto = isOwnProfile ? myInfo?.photo ?? "/imgs/placeholder.png" : "/imgs/placeholder.png";
-    const profileBio = isOwnProfile ? myInfo?.autodescription : "";
+    const [profile, setProfile] = useState<PublicProfile | null>(null);
+    const [loadingProfile, setLoadingProfile] = useState(true);
+    const [notFound, setNotFound] = useState(false);
 
     const [tab, setTab] = useState<Tab>("friends");
 
@@ -102,10 +115,63 @@ export default function UserProfile({ profileName }: { profileName: string }) {
     const [canScrollPrev, setCanScrollPrev] = useState(false);
     const [canScrollNext, setCanScrollNext] = useState(false);
 
+    const isOwnProfile = profile?.friendship_status === "self";
+    const profileId = profile?.id;
+
     useEffect(() => {
-        getUserPhotos();
-        getUserPosts();
-    }, []);
+        let active = true;
+
+        setLoadingProfile(true);
+        setNotFound(false);
+
+        get(`/social-media/users/${encodeURIComponent(identifier)}`).then((response) => {
+            if (!active) return;
+
+            // get() devolve undefined tanto no 404 quanto em falha de rede
+            if (!response?.data) setNotFound(true);
+            else setProfile(response.data as PublicProfile);
+
+            setLoadingProfile(false);
+        });
+
+        return () => {
+            active = false;
+        };
+    }, [identifier]);
+
+    const getUserPhotos = useCallback(async (userId: number) => {
+        setLoadingPhotos(true);
+
+        const response = await get(`/social-media/user-photos?user_id=${userId}`);
+
+        if (!response) {
+            showToast({ message: "Erro ao carregar fotos", status: "error", title: "Fotos" });
+        }
+
+        setUserPhotos(response?.data ?? []);
+        setLoadingPhotos(false);
+    }, [showToast]);
+
+    const getUserPosts = useCallback(async (userId: number) => {
+        setLoadingPosts(true);
+
+        const response = await get(`/social-media/feed?user_id=${userId}`);
+
+        if (!response) {
+            showToast({ message: "Erro ao carregar posts", status: "error", title: "Posts" });
+        }
+
+        setUserPosts(response?.data ?? []);
+        setLoadingPosts(false);
+    }, [showToast]);
+
+    // fotos e posts dependem de saber de quem é o perfil
+    useEffect(() => {
+        if (!profileId) return;
+
+        getUserPhotos(profileId);
+        getUserPosts(profileId);
+    }, [profileId, getUserPhotos, getUserPosts]);
 
     useEffect(() => {
         updateScrollButtons();
@@ -128,30 +194,6 @@ export default function UserProfile({ profileName }: { profileName: string }) {
         if (!track) return;
 
         track.scrollBy({ left: direction * track.clientWidth, behavior: "smooth" });
-    }
-
-    async function getUserPosts() {
-        setLoadingPosts(true);
-        const response = await get("/social-media/feed");
-
-        if (!response) {
-            showToast({ message: "Erro ao carregar posts", status: "error", title: "Posts" });
-        }
-
-        setUserPosts(response?.data ?? []);
-        setLoadingPosts(false);
-    }
-
-    async function getUserPhotos() {
-        setLoadingPhotos(true);
-        const response = await get("/social-media/user-photos");
-
-        if (!response) {
-            showToast({ message: "Erro ao carregar fotos", status: "error", title: "Fotos" });
-        }
-
-        setUserPhotos(response?.data ?? []);
-        setLoadingPhotos(false);
     }
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -184,7 +226,7 @@ export default function UserProfile({ profileName }: { profileName: string }) {
             setNewPhoto({ photo_path: null });
             setModalNewPhoto(false);
             setPreview(null);
-            getUserPhotos();
+            if (profileId) getUserPhotos(profileId);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
             showToast({
@@ -197,10 +239,60 @@ export default function UserProfile({ profileName }: { profileName: string }) {
         setLoadingSendPhoto(false);
     }
 
+    /** O botão de amizade do cabeçalho também muda o contador de amigos. */
+    function handleFriendshipChange(_personId: number, status: FriendshipStatus) {
+        setProfile((current) =>
+            current
+                ? {
+                    ...current,
+                    friendship_status: status,
+                    friends_count:
+                        status === "friends" ? current.friends_count + 1 : current.friends_count,
+                }
+                : current
+        );
+    }
+
     const tabClass = (active: boolean) =>
         `flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors cursor-pointer
         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring
         ${active ? "bg-brand-subtle text-brand" : "text-content-muted hover:bg-surface-2"}`;
+
+    const profileName = profile?.name ?? identifier;
+    const profilePhoto = profile?.photo || "/imgs/placeholder.png";
+    const profileCover = profile?.cover || DEFAULT_COVER;
+    const location = profile ? locationOf(profile) : "";
+    const friends = profile?.friends ?? [];
+    const communities = profile?.communities ?? [];
+    const photosCount = loadingPhotos ? (profile?.photos_count ?? 0) : userPhotos.length;
+
+    if (notFound) {
+        return (
+            <>
+                <Sidebar />
+
+                <div className="flex flex-1 min-w-0 flex-col">
+                    <Container className="rounded-card" padding="p-4" as="section">
+                        <div className="flex flex-col items-center gap-3 py-16 text-center">
+                            <UsersIcon className="size-10 text-content-subtle" />
+                            <h1 className="text-lg font-semibold">Perfil não encontrado</h1>
+                            <p className="max-w-sm text-sm text-content-muted">
+                                Não existe ninguém com o identificador “{identifier}”.
+                            </p>
+                            <Link
+                                href="/social-media/friends"
+                                className="mt-2 rounded-field px-3 py-1 text-sm font-semibold text-brand
+                                    hover:bg-surface-2 transition-colors
+                                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                            >
+                                Ver pessoas
+                            </Link>
+                        </div>
+                    </Container>
+                </div>
+            </>
+        );
+    }
 
     return (
         <>
@@ -225,13 +317,29 @@ export default function UserProfile({ profileName }: { profileName: string }) {
                 <Container className="rounded-card overflow-hidden" padding="p-0" as="section">
                     <div className="relative h-36 sm:h-52 w-full">
                         <Image
-                            src="/imgs/cover-profile.jpg"
+                            src={profileCover}
                             alt=""
                             fill
                             className="object-cover"
                             sizes="(max-width: 1024px) 100vw, 800px"
                             priority
                         />
+
+                        {/* atalho para a edição da capa direto do perfil — o
+                            fluxo de recorte e envio vive lá */}
+                        {isOwnProfile && (
+                            <Link
+                                href="/social-media/profile/edit"
+                                aria-label="Alterar foto de capa"
+                                className="absolute right-3 bottom-3 inline-flex items-center gap-2
+                                    rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white
+                                    backdrop-blur-sm transition-colors hover:bg-black/70
+                                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                            >
+                                <CameraIcon className="size-4 shrink-0" />
+                                <span className="hidden sm:inline">Alterar capa</span>
+                            </Link>
+                        )}
                     </div>
 
                     {/* relative z-10 é obrigatório: a capa é uma <Image fill>,
@@ -266,10 +374,14 @@ export default function UserProfile({ profileName }: { profileName: string }) {
                                     </Link>
                                 ) : (
                                     <>
-                                        <ColorButton className="flex-1 sm:flex-none px-4 text-sm font-semibold">
-                                            <ProfileIcon className="size-4 shrink-0" />
-                                            Seguir
-                                        </ColorButton>
+                                        {profile && (
+                                            <AddFriendButton
+                                                person={profile}
+                                                size="md"
+                                                className="flex-1 sm:flex-none font-semibold"
+                                                onStatusChange={handleFriendshipChange}
+                                            />
+                                        )}
                                         <Button
                                             variant="secondary"
                                             size="md"
@@ -288,31 +400,41 @@ export default function UserProfile({ profileName }: { profileName: string }) {
                         </div>
 
                         <div className="mt-4 flex flex-col gap-2">
-                            <h1 className="text-2xl font-semibold">{profileName}</h1>
+                            {loadingProfile ? (
+                                <Skeleton className="h-8" width="w-48" rounded="field" />
+                            ) : (
+                                <h1 className="text-2xl font-semibold break-words">{profileName}</h1>
+                            )}
 
-                            <div className="flex flex-row items-center gap-1 text-content-muted">
-                                <PinIcon className="size-3" />
-                                <span className="text-sm">Brasília - DF</span>
-                            </div>
+                            {location && (
+                                <div className="flex flex-row items-center gap-1 text-content-muted">
+                                    <PinIcon className="size-3" />
+                                    <span className="text-sm">{location}</span>
+                                </div>
+                            )}
 
-                            {profileBio && <p className="text-sm text-content-muted">{profileBio}</p>}
+                            {profile?.autodescription && (
+                                <p className="text-sm text-content-muted break-words">
+                                    {profile.autodescription}
+                                </p>
+                            )}
 
                             {/* Estatísticas em linha, com o número em destaque */}
                             <dl className="mt-2 flex flex-row flex-wrap gap-6">
                                 <div className="flex flex-col">
-                                    <dt className="sr-only">Seguidores</dt>
-                                    <dd className="text-lg font-semibold">2.000</dd>
-                                    <span className="text-xs text-content-muted">Seguidores</span>
-                                </div>
-                                <div className="flex flex-col">
                                     <dt className="sr-only">Amigos</dt>
-                                    <dd className="text-lg font-semibold">{suggestedFriends.length}</dd>
+                                    <dd className="text-lg font-semibold">{profile?.friends_count ?? 0}</dd>
                                     <span className="text-xs text-content-muted">Amigos</span>
                                 </div>
                                 <div className="flex flex-col">
                                     <dt className="sr-only">Fotos</dt>
-                                    <dd className="text-lg font-semibold">{userPhotos.length}</dd>
+                                    <dd className="text-lg font-semibold">{photosCount}</dd>
                                     <span className="text-xs text-content-muted">Fotos</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <dt className="sr-only">Posts</dt>
+                                    <dd className="text-lg font-semibold">{userPosts.length}</dd>
+                                    <span className="text-xs text-content-muted">Posts</span>
                                 </div>
                             </dl>
                         </div>
@@ -349,21 +471,48 @@ export default function UserProfile({ profileName }: { profileName: string }) {
                     <div className="p-4">
                         {tab === "friends" && (
                             <>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
-                                    {suggestedFriends.slice(0, 8).map((friend) => (
-                                        <CardUser key={friend.id} user={friend} />
-                                    ))}
-                                </div>
-                                <div className="flex justify-center">
-                                    <Link
-                                        href="/social-media/friends"
-                                        className="mt-4 rounded-field px-3 py-1 text-sm font-semibold text-brand
-                                            hover:bg-surface-2 transition-colors
-                                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
-                                    >
-                                        Ver todos
-                                    </Link>
-                                </div>
+                                {loadingProfile && (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
+                                        {Array.from({ length: 4 }).map((_, index) => (
+                                            <Skeleton key={index} className="w-full aspect-square" rounded="card" />
+                                        ))}
+                                    </div>
+                                )}
+
+                                {!loadingProfile && friends.length > 0 && (
+                                    <>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
+                                            {friends.slice(0, 8).map((friend) => (
+                                                <CardUser key={friend.id} user={friend} />
+                                            ))}
+                                        </div>
+
+                                        {isOwnProfile && (
+                                            <div className="flex justify-center">
+                                                <Link
+                                                    href="/social-media/friends"
+                                                    className="mt-4 rounded-field px-3 py-1 text-sm font-semibold text-brand
+                                                        hover:bg-surface-2 transition-colors
+                                                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                                                >
+                                                    Ver todos
+                                                </Link>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+
+                                {!loadingProfile && friends.length === 0 && (
+                                    <div className="flex flex-col items-center gap-3 py-12 text-center">
+                                        <UsersIcon className="size-10 text-content-subtle" />
+                                        <h3 className="text-base font-semibold">Nenhum amigo por aqui</h3>
+                                        <p className="max-w-xs text-sm text-content-muted">
+                                            {isOwnProfile
+                                                ? "Veja as sugestões e envie o primeiro convite."
+                                                : `${profileName} ainda não adicionou ninguém.`}
+                                        </p>
+                                    </div>
+                                )}
                             </>
                         )}
 
@@ -418,29 +567,23 @@ export default function UserProfile({ profileName }: { profileName: string }) {
                         )}
 
                         {tab === "communities" && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2 gap-3">
-                                {suggestedCommunities.map((community) => (
-                                    <Card
-                                        key={community.id}
-                                        className="flex flex-row items-center gap-3 p-3 transition-shadow hover:shadow-md"
-                                    >
-                                        <Image
-                                            src={community.photo_path}
-                                            alt=""
-                                            width={56}
-                                            height={56}
-                                            sizes="56px"
-                                            className="w-14 aspect-square rounded-full object-cover shrink-0"
-                                        />
-                                        <div className="flex flex-col min-w-0">
-                                            <h3 className="text-sm font-semibold truncate">{community.name}</h3>
-                                            <p className="text-xs text-content-muted truncate">
-                                                {community.description}
-                                            </p>
-                                        </div>
-                                    </Card>
-                                ))}
-                            </div>
+                            communities.length > 0 ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2 gap-3">
+                                    {communities.map((community) => (
+                                        <CommunityCard key={community.id} community={community} />
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center gap-3 py-12 text-center">
+                                    <CommunityIcon className="size-10 text-content-subtle" />
+                                    <h3 className="text-base font-semibold">Nenhuma comunidade</h3>
+                                    <p className="max-w-xs text-sm text-content-muted">
+                                        {isOwnProfile
+                                            ? "Entre em uma comunidade para ela aparecer aqui."
+                                            : `${profileName} ainda não participa de nenhuma.`}
+                                    </p>
+                                </div>
+                            )
                         )}
                     </div>
                 </Container>
@@ -548,7 +691,9 @@ export default function UserProfile({ profileName }: { profileName: string }) {
                             <PencilSquareIcon className="size-10 text-content-subtle" />
                             <h3 className="text-base font-semibold">Nenhum post ainda</h3>
                             <p className="max-w-xs text-sm text-content-muted">
-                                As publicações aparecem aqui assim que forem criadas.
+                                {isOwnProfile
+                                    ? "As suas publicações aparecem aqui assim que forem criadas."
+                                    : `${profileName} ainda não publicou nada.`}
                             </p>
                         </div>
                     )}
@@ -560,41 +705,18 @@ export default function UserProfile({ profileName }: { profileName: string }) {
                     <h2 className="text-lg font-semibold mb-4">Siga outras pessoas</h2>
                     {/* Empilhada abaixo de xl a coluna ocupa a largura toda,
                         então cabem mais colunas nesse intervalo */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 gap-3">
-                        {suggestedFriends.slice(0, 4).map((friend) => (
-                            <CardUser key={friend.id} user={friend} />
-                        ))}
-                    </div>
+                    <PeopleSuggestions
+                        limit={4}
+                        gridClassName="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 gap-3"
+                    />
                 </Container>
 
                 <Container className="rounded-card" padding="p-4">
                     <h2 className="text-lg font-semibold mb-4">Comunidades sugeridas</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-3">
-                        {suggestedCommunities.map((community) => (
-                            <Link
-                                href={`/social-media/communities/${community.id}`}
-                                key={community.id}
-                                className="rounded-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
-                            >
-                                <Card className="flex flex-row items-center gap-3 p-3 transition-shadow hover:shadow-md">
-                                    <Image
-                                        src={community.photo_path}
-                                        alt=""
-                                        width={48}
-                                        height={48}
-                                        sizes="48px"
-                                        className="w-12 aspect-square rounded-full object-cover shrink-0"
-                                    />
-                                    <div className="flex flex-col min-w-0">
-                                        <h3 className="text-sm font-semibold truncate">{community.name}</h3>
-                                        <p className="text-xs text-content-muted truncate">
-                                            {community.description}
-                                        </p>
-                                    </div>
-                                </Card>
-                            </Link>
-                        ))}
-                    </div>
+                    <CommunitySuggestions
+                        limit={4}
+                        gridClassName="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-3"
+                    />
                 </Container>
 
                 <SidebarFooter />

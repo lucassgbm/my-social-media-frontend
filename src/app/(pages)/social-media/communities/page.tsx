@@ -1,10 +1,8 @@
 'use client';
 
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import Image from "../../../../../components/remote-image";
 import Container from "../../../../../components/container";
-import Card from "../../../../../components/card";
 import Button from "../../../../../components/button";
 import ColorButton from "../../../../../components/color-button";
 import Modal from "../../../../../components/modal";
@@ -21,7 +19,7 @@ import CommunityIcon from "../../../../../components/icons/community";
 import PlusIcon from "../../../../../components/icons/plus";
 import { AppContext } from "../layout";
 import { get, postFormData } from "@/api/services/request";
-import { suggestedCommunities } from "../../../../../mocks/suggestions";
+import CommunitySuggestions from "../../../../../components/communities/community-suggestions";
 import { useToaster } from "../../../../../providers/toaster-provider";
 
 type Category = { id: number; name: string };
@@ -366,32 +364,10 @@ export default function Home() {
                     <Container className="rounded-card" padding="p-4">
                         <h2 className="text-lg font-semibold mb-4">Comunidades sugeridas</h2>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
-                            {suggestedCommunities.map((community) => (
-                                <Link
-                                    href={`/social-media/communities/${community.id}`}
-                                    key={community.id}
-                                    className="rounded-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
-                                >
-                                    <Card className="flex flex-row items-center gap-3 p-3 transition-shadow hover:shadow-md">
-                                        <Image
-                                            src={community.photo_path}
-                                            alt=""
-                                            width={48}
-                                            height={48}
-                                            sizes="48px"
-                                            className="w-12 aspect-square rounded-full object-cover shrink-0"
-                                        />
-                                        <div className="flex flex-col min-w-0">
-                                            <h3 className="text-sm font-semibold truncate">{community.name}</h3>
-                                            <p className="text-xs text-content-muted truncate">
-                                                {community.description}
-                                            </p>
-                                        </div>
-                                    </Card>
-                                </Link>
-                            ))}
-                        </div>
+                        <CommunitySuggestions
+                            limit={4}
+                            gridClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3"
+                        />
                     </Container>
                 </aside>
             </div>
