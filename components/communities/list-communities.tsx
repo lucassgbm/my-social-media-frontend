@@ -1,14 +1,6 @@
 import Image from "../remote-image";
 import Link from "next/link";
-
-export interface Community {
-    id: number;
-    name: string;
-    category_id?: number;
-    description?: string | null;
-    photo?: string | null;
-    owner_id?: number;
-}
+import type { Community } from "../../utils/community";
 
 interface CommunitiesProps {
     communities: Community[];

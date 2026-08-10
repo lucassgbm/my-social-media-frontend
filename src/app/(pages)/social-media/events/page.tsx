@@ -6,44 +6,63 @@ import Container from "../../../../../components/container";
 import Sidebar from "../../../../../components/sidebar";
 import SidebarFooter from "../../../../../components/sidebar-footer";
 import EventCard from "../../../../../components/communities/event-card";
+import FilterBar, { type ActiveFilter } from "../../../../../components/filters/filter-bar";
+import FilterModal from "../../../../../components/filters/filter-modal";
+import Input from "../../../../../components/input";
+import Select from "../../../../../components/select";
 import Skeleton from "../../../../../components/skeleton";
-import SearchIcon from "../../../../../components/icons/search";
-import CloseIcon from "../../../../../components/icons/close";
 import TrophyIcon from "../../../../../components/icons/trophy";
-import ClockIcon from "../../../../../components/icons/clock";
-import CalendarIcon from "../../../../../components/icons/calendar";
 import CommunityIcon from "../../../../../components/icons/community";
 import { get } from "@/api/services/request";
 import { useToaster } from "../../../../../providers/toaster-provider";
-import type { CommunityEvent, EventFilter } from "../../../../../utils/community";
+import type { Community, CommunityEvent, EventFilter } from "../../../../../utils/community";
 
-const FILTERS: { id: EventFilter; label: string; icon: typeof TrophyIcon }[] = [
-    { id: "upcoming", label: "Próximos", icon: CalendarIcon },
-    { id: "past", label: "Encerrados", icon: ClockIcon },
-    { id: "all", label: "Todos", icon: TrophyIcon },
-];
+type Filters = {
+    search: string;
+    period: EventFilter;
+    /** Id da comunidade, "" para todas. */
+    communityId: string;
+    sort: "closest" | "farthest";
+};
+
+const EMPTY_FILTERS: Filters = {
+    search: "",
+    period: "upcoming",
+    communityId: "",
+    sort: "closest",
+};
+
+const PERIOD_LABELS: Record<EventFilter, string> = {
+    upcoming: "Próximos",
+    past: "Encerrados",
+    all: "Todos os períodos",
+};
 
 const GRID = "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4";
 
 /**
  * Agenda pessoal: os eventos das comunidades de que o usuário participa.
  *
- * O corte entre próximo e encerrado é do backend (por `date_end`, para um
- * evento de vários dias não vencer no primeiro deles); aqui só se escolhe o
- * filtro. A busca por nome é local, sobre o que já veio.
+ * O período é filtrado pela API (o corte usa `date_end`, para um evento de
+ * vários dias não vencer no primeiro deles); busca, comunidade e ordenação são
+ * aplicados sobre o que já veio.
  */
 export default function EventsPage() {
     const { showToast } = useToaster();
 
-    const [filter, setFilter] = useState<EventFilter>("upcoming");
     const [events, setEvents] = useState<CommunityEvent[]>([]);
+    const [communities, setCommunities] = useState<Community[]>([]);
     const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState("");
+
+    const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+    // rascunho do modal: a lista só muda quando se aplica
+    const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
+    const [modalOpen, setModalOpen] = useState(false);
 
     const loadEvents = useCallback(async () => {
         setLoading(true);
 
-        const response = await get(`/social-media/events?filter=${filter}`);
+        const response = await get(`/social-media/events?filter=${filters.period}`);
 
         // get() engole o erro e devolve undefined
         if (!response) {
@@ -56,32 +75,81 @@ export default function EventsPage() {
 
         setEvents(response?.data ?? []);
         setLoading(false);
-    }, [filter, showToast]);
+    }, [filters.period, showToast]);
 
     useEffect(() => {
         loadEvents();
     }, [loadEvents]);
 
+    // as comunidades do filtro não podem sair dos eventos carregados: mudar o
+    // período esvaziaria a lista de opções junto
+    useEffect(() => {
+        get("/social-media/community").then((response) => {
+            const all: Community[] = response?.data ?? [];
+
+            setCommunities(all.filter((community) => community.viewer_role !== "none"));
+        });
+    }, []);
+
     const filtered = useMemo(() => {
-        const term = search.trim().toLowerCase();
-        if (term === "") return events;
+        const term = filters.search.trim().toLowerCase();
 
-        return events.filter((event) =>
-            [event.title, event.local, event.community?.name]
-                .filter(Boolean)
-                .some((field) => String(field).toLowerCase().includes(term))
-        );
-    }, [events, search]);
+        const result = events.filter((event) => {
+            const matchesTerm =
+                term === "" ||
+                [event.title, event.local, event.community?.name]
+                    .filter(Boolean)
+                    .some((field) => String(field).toLowerCase().includes(term));
 
-    const filterClass = (active: boolean) =>
-        `flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors cursor-pointer
-        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring
-        ${active ? "bg-brand-subtle text-brand" : "text-content-muted hover:bg-surface-2"}`;
+            const matchesCommunity =
+                filters.communityId === "" ||
+                String(event.community?.id ?? "") === filters.communityId;
+
+            return matchesTerm && matchesCommunity;
+        });
+
+        // a API já ordena por data; aqui só se inverte quando pedido
+        return filters.sort === "farthest" ? [...result].reverse() : result;
+    }, [events, filters]);
+
+    function openModal() {
+        setDraft(filters);
+        setModalOpen(true);
+    }
+
+    function applyFilters() {
+        setFilters(draft);
+        setModalOpen(false);
+    }
+
+    /** Chips do que está aplicado — o padrão fica de fora. */
+    const activeFilters: ActiveFilter[] = [];
+
+    if (filters.search.trim() !== "") {
+        activeFilters.push({ id: "search", label: `Busca: ${filters.search}` });
+    }
+    if (filters.period !== EMPTY_FILTERS.period) {
+        activeFilters.push({ id: "period", label: PERIOD_LABELS[filters.period] });
+    }
+    if (filters.communityId !== "") {
+        const name = communities.find(
+            (community) => String(community.id) === filters.communityId
+        )?.name;
+
+        activeFilters.push({ id: "communityId", label: `Comunidade: ${name ?? filters.communityId}` });
+    }
+    if (filters.sort !== EMPTY_FILTERS.sort) {
+        activeFilters.push({ id: "sort", label: "Mais distantes primeiro" });
+    }
+
+    function removeFilter(id: string) {
+        setFilters((current) => ({ ...current, [id]: EMPTY_FILTERS[id as keyof Filters] }));
+    }
 
     const emptyMessage =
-        filter === "past"
+        filters.period === "past"
             ? "Nenhum evento encerrado por aqui."
-            : filter === "upcoming"
+            : filters.period === "upcoming"
                 ? "Nenhum evento marcado nas suas comunidades."
                 : "As suas comunidades ainda não têm eventos.";
 
@@ -95,56 +163,22 @@ export default function EventsPage() {
                     <div className="flex flex-col gap-4 border-b border-line p-4">
                         <div className="flex flex-wrap items-baseline justify-between gap-2">
                             <h1 className="text-2xl font-semibold">Eventos</h1>
-                            <span className="text-sm text-content-muted">
-                                {loading
+                            <p className="text-sm text-content-muted">
+                                A agenda das comunidades de que você participa.
+                            </p>
+                        </div>
+
+                        <FilterBar
+                            onOpen={openModal}
+                            active={activeFilters}
+                            onRemove={removeFilter}
+                            onClearAll={() => setFilters(EMPTY_FILTERS)}
+                            summary={
+                                loading
                                     ? "Carregando..."
-                                    : `${filtered.length} ${filtered.length === 1 ? "evento" : "eventos"}`}
-                            </span>
-                        </div>
-
-                        <p className="text-sm text-content-muted">
-                            A agenda das comunidades de que você participa.
-                        </p>
-
-                        <div className="flex w-full items-center gap-2 rounded-full border border-line
-                            bg-surface-2 px-4 py-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand-ring">
-                            <SearchIcon className="size-5 shrink-0 text-content-muted" />
-                            <input
-                                type="search"
-                                aria-label="Buscar eventos"
-                                placeholder="Buscar por nome, local ou comunidade..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="w-full bg-transparent text-sm text-content placeholder:text-content-subtle outline-none"
-                            />
-                            {search && (
-                                <button
-                                    type="button"
-                                    onClick={() => setSearch("")}
-                                    aria-label="Limpar busca"
-                                    className="rounded-full p-1 text-content-muted hover:bg-surface-3 hover:text-content
-                                        cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
-                                >
-                                    <CloseIcon className="size-3" />
-                                </button>
-                            )}
-                        </div>
-
-                        <div role="tablist" aria-label="Filtrar eventos" className="flex flex-wrap gap-2">
-                            {FILTERS.map(({ id, label, icon: Icon }) => (
-                                <button
-                                    key={id}
-                                    type="button"
-                                    role="tab"
-                                    aria-selected={filter === id}
-                                    onClick={() => setFilter(id)}
-                                    className={filterClass(filter === id)}
-                                >
-                                    <Icon className="size-4 shrink-0" />
-                                    {label}
-                                </button>
-                            ))}
-                        </div>
+                                    : `${filtered.length} ${filtered.length === 1 ? "evento" : "eventos"}`
+                            }
+                        />
                     </div>
 
                     <div className="p-4">
@@ -173,13 +207,25 @@ export default function EventsPage() {
                             <div className="flex flex-col items-center gap-3 py-12 text-center">
                                 <TrophyIcon className="size-10 text-content-subtle" />
                                 <h2 className="text-base font-semibold">
-                                    {search ? "Nenhum resultado" : "Nada na agenda"}
+                                    {activeFilters.length > 0 ? "Nenhum resultado" : "Nada na agenda"}
                                 </h2>
                                 <p className="max-w-sm text-sm text-content-muted">
-                                    {search ? `Não encontramos nada com "${search}".` : emptyMessage}
+                                    {activeFilters.length > 0
+                                        ? "Nenhum evento combina com os filtros aplicados."
+                                        : emptyMessage}
                                 </p>
 
-                                {!search && (
+                                {activeFilters.length > 0 ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => setFilters(EMPTY_FILTERS)}
+                                        className="mt-2 rounded-field px-3 py-1 text-sm font-semibold text-brand
+                                            cursor-pointer hover:bg-surface-2 transition-colors
+                                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                                    >
+                                        Limpar filtros
+                                    </button>
+                                ) : (
                                     <Link
                                         href="/social-media/communities"
                                         className="mt-2 rounded-field px-3 py-1 text-sm font-semibold text-brand
@@ -210,6 +256,56 @@ export default function EventsPage() {
                     <SidebarFooter />
                 </aside>
             </div>
+
+            <FilterModal
+                isOpen={modalOpen}
+                onClose={() => setModalOpen(false)}
+                onApply={applyFilters}
+                onClear={() => setDraft(EMPTY_FILTERS)}
+                title="Filtrar eventos"
+            >
+                <Input
+                    label="Buscar"
+                    type="search"
+                    placeholder="Nome, local ou comunidade"
+                    value={draft.search}
+                    onChange={(e) => setDraft({ ...draft, search: e.target.value })}
+                />
+
+                <Select
+                    label="Período"
+                    value={draft.period}
+                    onChange={(e) => setDraft({ ...draft, period: e.target.value as EventFilter })}
+                    options={[
+                        { value: "upcoming", label: "Próximos" },
+                        { value: "past", label: "Encerrados" },
+                        { value: "all", label: "Todos" },
+                    ]}
+                />
+
+                <Select
+                    label="Comunidade"
+                    value={draft.communityId}
+                    onChange={(e) => setDraft({ ...draft, communityId: e.target.value })}
+                    options={[
+                        { value: "", label: "Todas as comunidades" },
+                        ...communities.map((community) => ({
+                            value: String(community.id),
+                            label: community.name,
+                        })),
+                    ]}
+                />
+
+                <Select
+                    label="Ordenar por"
+                    value={draft.sort}
+                    onChange={(e) => setDraft({ ...draft, sort: e.target.value as Filters["sort"] })}
+                    options={[
+                        { value: "closest", label: "Mais próximos primeiro" },
+                        { value: "farthest", label: "Mais distantes primeiro" },
+                    ]}
+                />
+            </FilterModal>
         </>
     );
 }

@@ -21,6 +21,7 @@ export type Community = {
     name: string;
     description?: string | null;
     photo?: string | null;
+    category_id?: number | null;
     owner_id: number;
     owner?: Person | null;
     members?: CommunityMember[];

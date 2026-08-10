@@ -11,9 +11,10 @@ import Textarea from "../../../../../components/textarea";
 import FormButtom from "../../../../../components/form-buttom";
 import Sidebar from "../../../../../components/sidebar";
 import Skeleton from "../../../../../components/skeleton";
-import ListCommunities, { type Community } from "../../../../../components/communities/list-communities";
-import SearchIcon from "../../../../../components/icons/search";
-import CloseIcon from "../../../../../components/icons/close";
+import ListCommunities from "../../../../../components/communities/list-communities";
+import FilterBar, { type ActiveFilter } from "../../../../../components/filters/filter-bar";
+import FilterModal from "../../../../../components/filters/filter-modal";
+import Select from "../../../../../components/select";
 import PhotoIcon from "../../../../../components/icons/photo";
 import CommunityIcon from "../../../../../components/icons/community";
 import PlusIcon from "../../../../../components/icons/plus";
@@ -21,9 +22,37 @@ import { AppContext } from "../layout";
 import { get, postFormData } from "@/api/services/request";
 import CommunitySuggestions from "../../../../../components/communities/community-suggestions";
 import { useToaster } from "../../../../../providers/toaster-provider";
+import type { Community } from "../../../../../utils/community";
 
 type Category = { id: number; name: string };
-type Tab = "all" | "mine";
+
+type Filters = {
+    search: string;
+    /** Id da categoria, "" para todas. */
+    categoryId: string;
+    /** `mine` = criadas por mim; `joined` = das quais participo. */
+    membership: "all" | "mine" | "joined";
+    sort: "recent" | "name" | "members";
+};
+
+const EMPTY_FILTERS: Filters = {
+    search: "",
+    categoryId: "",
+    membership: "all",
+    sort: "recent",
+};
+
+const MEMBERSHIP_LABELS: Record<Filters["membership"], string> = {
+    all: "Todas",
+    mine: "Criadas por mim",
+    joined: "Que eu participo",
+};
+
+const SORT_LABELS: Record<Filters["sort"], string> = {
+    recent: "Mais recentes",
+    name: "Nome (A-Z)",
+    members: "Mais membros",
+};
 
 const GRID = "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4";
 
@@ -42,9 +71,10 @@ export default function Home() {
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const [tab, setTab] = useState<Tab>("all");
-    const [search, setSearch] = useState("");
-    const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
+    const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+    // rascunho do modal: a lista só muda quando se aplica
+    const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
+    const [filterModal, setFilterModal] = useState(false);
 
     const [modalNewCommunity, setModalNewCommunity] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -84,24 +114,69 @@ export default function Home() {
         setLoading(false);
     }
 
-    const mine = useMemo(
-        () => communities.filter((community) => community.owner_id === myInfo?.id),
-        [communities, myInfo?.id]
-    );
-
     const filtered = useMemo(() => {
-        const base = tab === "mine" ? mine : communities;
-        const term = search.trim().toLowerCase();
+        const term = filters.search.trim().toLowerCase();
 
-        return base.filter((community) => {
+        const result = communities.filter((community) => {
             const matchesTerm =
-                term === "" || community.name?.toLowerCase().includes(term);
-            const matchesCategory =
-                categoryFilter === null || community.category_id === categoryFilter;
+                term === "" ||
+                community.name?.toLowerCase().includes(term) ||
+                community.description?.toLowerCase().includes(term);
 
-            return matchesTerm && matchesCategory;
+            const matchesCategory =
+                filters.categoryId === "" ||
+                String(community.category_id) === filters.categoryId;
+
+            const matchesMembership =
+                filters.membership === "all" ||
+                (filters.membership === "mine"
+                    ? community.owner_id === myInfo?.id
+                    // `viewer_role` vem da API: dono e admin também participam
+                    : ["owner", "admin", "member"].includes(community.viewer_role ?? "none"));
+
+            return matchesTerm && matchesCategory && matchesMembership;
         });
-    }, [communities, mine, tab, search, categoryFilter]);
+
+        if (filters.sort === "name") {
+            return [...result].sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "", "pt-BR"));
+        }
+
+        if (filters.sort === "members") {
+            return [...result].sort((a, b) => (b.members_count ?? 0) - (a.members_count ?? 0));
+        }
+
+        // `recent`: a API já devolve na ordem de criação
+        return result;
+    }, [communities, filters, myInfo?.id]);
+
+    function openModal() {
+        setDraft(filters);
+        setFilterModal(true);
+    }
+
+    /** Chips do que está aplicado — o padrão fica de fora. */
+    const activeFilters: ActiveFilter[] = [];
+
+    if (filters.search.trim() !== "") {
+        activeFilters.push({ id: "search", label: `Busca: ${filters.search}` });
+    }
+    if (filters.categoryId !== "") {
+        const name = categories.find(
+            (category) => String(category.id) === filters.categoryId
+        )?.name;
+
+        activeFilters.push({ id: "categoryId", label: `Categoria: ${name ?? filters.categoryId}` });
+    }
+    if (filters.membership !== EMPTY_FILTERS.membership) {
+        activeFilters.push({ id: "membership", label: MEMBERSHIP_LABELS[filters.membership] });
+    }
+    if (filters.sort !== EMPTY_FILTERS.sort) {
+        activeFilters.push({ id: "sort", label: SORT_LABELS[filters.sort] });
+    }
+
+    function removeFilter(id: string) {
+        setFilters((current) => ({ ...current, [id]: EMPTY_FILTERS[id as keyof Filters] }));
+    }
 
     function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
@@ -184,18 +259,6 @@ export default function Home() {
         }
     }
 
-    const tabClass = (active: boolean) =>
-        `flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors cursor-pointer
-        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring
-        ${active ? "bg-brand-subtle text-brand" : "text-content-muted hover:bg-surface-2"}`;
-
-    const chipClass = (active: boolean) =>
-        `flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer
-        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring
-        ${active
-            ? "border-brand bg-brand-subtle text-brand"
-            : "border-line text-content-muted hover:bg-surface-2"}`;
-
     return (
         <>
             <Sidebar />
@@ -213,31 +276,22 @@ export default function Home() {
                             </span>
                         </div>
 
-                        {/* Busca real. Antes o botão de lupa abria o modal de
-                            criar comunidade e nada era filtrado. */}
-                        <div className="flex flex-col sm:flex-row gap-2">
-                            <div className="flex w-full items-center gap-2 rounded-full border border-line
-                                bg-surface-2 px-4 py-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand-ring">
-                                <SearchIcon className="size-5 shrink-0 text-content-muted" />
-                                <input
-                                    type="search"
-                                    aria-label="Buscar comunidades pelo nome"
-                                    placeholder="Buscar pelo nome..."
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    className="w-full bg-transparent text-sm text-content placeholder:text-content-subtle outline-none"
+                        {/* A lista de categorias crescia sem limite no cabeçalho;
+                            agora todos os filtros moram no modal e só o que está
+                            aplicado volta como chip */}
+                        <div className="flex flex-col sm:flex-row sm:items-start gap-2">
+                            <div className="flex-1 min-w-0">
+                                <FilterBar
+                                    onOpen={openModal}
+                                    active={activeFilters}
+                                    onRemove={removeFilter}
+                                    onClearAll={() => setFilters(EMPTY_FILTERS)}
+                                    summary={
+                                        loading
+                                            ? "Carregando..."
+                                            : `${filtered.length} ${filtered.length === 1 ? "comunidade" : "comunidades"}`
+                                    }
                                 />
-                                {search && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setSearch("")}
-                                        aria-label="Limpar busca"
-                                        className="rounded-full p-1 text-content-muted hover:bg-surface-3 hover:text-content
-                                            cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
-                                    >
-                                        <CloseIcon className="size-3" />
-                                    </button>
-                                )}
                             </div>
 
                             <ColorButton
@@ -248,64 +302,6 @@ export default function Home() {
                                 Criar comunidade
                             </ColorButton>
                         </div>
-
-                        <div role="tablist" aria-label="Listas de comunidades" className="flex flex-wrap gap-2">
-                            <button
-                                type="button"
-                                role="tab"
-                                aria-selected={tab === "all"}
-                                onClick={() => setTab("all")}
-                                className={tabClass(tab === "all")}
-                            >
-                                <CommunityIcon className="size-4" />
-                                Todas
-                                <span className="text-xs opacity-80">{communities.length}</span>
-                            </button>
-
-                            <button
-                                type="button"
-                                role="tab"
-                                aria-selected={tab === "mine"}
-                                onClick={() => setTab("mine")}
-                                className={tabClass(tab === "mine")}
-                            >
-                                <PlusIcon className="size-4" />
-                                Criadas por mim
-                                <span className="text-xs opacity-80">{mine.length}</span>
-                            </button>
-                        </div>
-
-                        {/* Categorias vindas de GET /category, no lugar do chip
-                            "Automobilismo" fixo que não filtrava nada */}
-                        {categories.length > 0 && (
-                            <div className="flex flex-row flex-wrap gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setCategoryFilter(null)}
-                                    aria-pressed={categoryFilter === null}
-                                    className={chipClass(categoryFilter === null)}
-                                >
-                                    Todas as categorias
-                                </button>
-
-                                {categories.map((category) => {
-                                    const active = categoryFilter === category.id;
-
-                                    return (
-                                        <button
-                                            key={category.id}
-                                            type="button"
-                                            onClick={() => setCategoryFilter(active ? null : category.id)}
-                                            aria-pressed={active}
-                                            className={chipClass(active)}
-                                        >
-                                            {category.name}
-                                            {active && <CloseIcon className="size-3" />}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        )}
                     </div>
 
                     <div className="p-4">
@@ -333,20 +329,28 @@ export default function Home() {
                                 <CommunityIcon className="size-10 text-content-subtle" />
 
                                 <h2 className="text-base font-semibold">
-                                    {search || categoryFilter !== null
+                                    {activeFilters.length > 0
                                         ? "Nenhum resultado"
-                                        : tab === "mine"
-                                            ? "Você ainda não criou comunidades"
-                                            : "Nenhuma comunidade por aqui"}
+                                        : "Nenhuma comunidade por aqui"}
                                 </h2>
 
                                 <p className="max-w-sm text-sm text-content-muted">
-                                    {search || categoryFilter !== null
-                                        ? "Tente outro termo ou remova os filtros."
+                                    {activeFilters.length > 0
+                                        ? "Nenhuma comunidade combina com os filtros aplicados."
                                         : "Crie a primeira e convide as pessoas para participar."}
                                 </p>
 
-                                {!search && categoryFilter === null && (
+                                {activeFilters.length > 0 ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => setFilters(EMPTY_FILTERS)}
+                                        className="mt-2 rounded-field px-3 py-1 text-sm font-semibold text-brand
+                                            cursor-pointer hover:bg-surface-2 transition-colors
+                                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                                    >
+                                        Limpar filtros
+                                    </button>
+                                ) : (
                                     <ColorButton
                                         onClick={() => setModalNewCommunity(true)}
                                         className="px-4 text-sm font-semibold"
@@ -480,6 +484,62 @@ export default function Home() {
                     </div>
                 </form>
             </Modal>
+
+            <FilterModal
+                isOpen={filterModal}
+                onClose={() => setFilterModal(false)}
+                onApply={() => {
+                    setFilters(draft);
+                    setFilterModal(false);
+                }}
+                onClear={() => setDraft(EMPTY_FILTERS)}
+                title="Filtrar comunidades"
+            >
+                <Input
+                    label="Buscar"
+                    type="search"
+                    placeholder="Nome ou descrição"
+                    value={draft.search}
+                    onChange={(e) => setDraft({ ...draft, search: e.target.value })}
+                />
+
+                <Select
+                    label="Categoria"
+                    value={draft.categoryId}
+                    onChange={(e) => setDraft({ ...draft, categoryId: e.target.value })}
+                    options={[
+                        { value: "", label: "Todas as categorias" },
+                        ...categories.map((category) => ({
+                            value: String(category.id),
+                            label: category.name,
+                        })),
+                    ]}
+                />
+
+                <Select
+                    label="Participação"
+                    value={draft.membership}
+                    onChange={(e) =>
+                        setDraft({ ...draft, membership: e.target.value as Filters["membership"] })
+                    }
+                    options={[
+                        { value: "all", label: MEMBERSHIP_LABELS.all },
+                        { value: "joined", label: MEMBERSHIP_LABELS.joined },
+                        { value: "mine", label: MEMBERSHIP_LABELS.mine },
+                    ]}
+                />
+
+                <Select
+                    label="Ordenar por"
+                    value={draft.sort}
+                    onChange={(e) => setDraft({ ...draft, sort: e.target.value as Filters["sort"] })}
+                    options={[
+                        { value: "recent", label: SORT_LABELS.recent },
+                        { value: "name", label: SORT_LABELS.name },
+                        { value: "members", label: SORT_LABELS.members },
+                    ]}
+                />
+            </FilterModal>
 
         </>
     );

@@ -7,9 +7,11 @@ import Sidebar from "../../../../../components/sidebar";
 import CardUser from "../../../../../components/users/card-user";
 import PeopleSuggestions from "../../../../../components/users/people-suggestions";
 import RequestFriend from "../../../../../components/friends/request-friend";
+import FilterBar, { type ActiveFilter } from "../../../../../components/filters/filter-bar";
+import FilterModal from "../../../../../components/filters/filter-modal";
+import Input from "../../../../../components/input";
+import Select from "../../../../../components/select";
 import Skeleton from "../../../../../components/skeleton";
-import SearchIcon from "../../../../../components/icons/search";
-import CloseIcon from "../../../../../components/icons/close";
 import UsersIcon from "../../../../../components/icons/users";
 import InboxIcon from "../../../../../components/icons/inbox";
 import { useToaster } from "../../../../../providers/toaster-provider";
@@ -17,13 +19,26 @@ import type { Person } from "../../../../../utils/friendship";
 
 type Tab = "friends" | "requests";
 
+type Filters = {
+    search: string;
+    /** Sigla da UF, "" para todas. */
+    uf: string;
+    sort: "name" | "name_desc";
+};
+
+const EMPTY_FILTERS: Filters = { search: "", uf: "", sort: "name" };
+
 const GRID = "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4";
 
 export default function Home() {
     const { showToast } = useToaster();
 
     const [tab, setTab] = useState<Tab>("friends");
-    const [search, setSearch] = useState("");
+
+    const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+    // rascunho do modal: a lista só muda quando se aplica
+    const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
+    const [modalOpen, setModalOpen] = useState(false);
 
     const [friends, setFriends] = useState<Person[]>([]);
     const [requests, setRequests] = useState<Person[]>([]);
@@ -107,11 +122,53 @@ export default function Home() {
 
     const list = tab === "friends" ? friends : requests;
 
+    /** UFs presentes na lista — não adianta oferecer estado sem ninguém. */
+    const availableUfs = useMemo(() => {
+        const ufs = new Set(
+            [...friends, ...requests].map((person) => person.uf).filter(Boolean) as string[]
+        );
+
+        return Array.from(ufs).sort();
+    }, [friends, requests]);
+
     const filtered = useMemo(() => {
-        const term = search.trim().toLowerCase();
-        if (term === "") return list;
-        return list.filter((person) => person.name?.toLowerCase().includes(term));
-    }, [list, search]);
+        const term = filters.search.trim().toLowerCase();
+
+        const result = list.filter((person) => {
+            const matchesTerm = term === "" || person.name?.toLowerCase().includes(term);
+            const matchesUf = filters.uf === "" || person.uf === filters.uf;
+
+            return matchesTerm && matchesUf;
+        });
+
+        return [...result].sort((a, b) => {
+            const compared = (a.name ?? "").localeCompare(b.name ?? "", "pt-BR");
+
+            return filters.sort === "name_desc" ? -compared : compared;
+        });
+    }, [list, filters]);
+
+    function openModal() {
+        setDraft(filters);
+        setModalOpen(true);
+    }
+
+    /** Chips do que está aplicado — o padrão fica de fora. */
+    const activeFilters: ActiveFilter[] = [];
+
+    if (filters.search.trim() !== "") {
+        activeFilters.push({ id: "search", label: `Busca: ${filters.search}` });
+    }
+    if (filters.uf !== "") {
+        activeFilters.push({ id: "uf", label: `UF: ${filters.uf}` });
+    }
+    if (filters.sort !== EMPTY_FILTERS.sort) {
+        activeFilters.push({ id: "sort", label: "Nome (Z-A)" });
+    }
+
+    function removeFilter(id: string) {
+        setFilters((current) => ({ ...current, [id]: EMPTY_FILTERS[id as keyof Filters] }));
+    }
 
     const tabClass = (active: boolean) =>
         `flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors cursor-pointer
@@ -128,38 +185,25 @@ export default function Home() {
                     <div className="flex flex-col gap-4 border-b border-line p-4">
                         <div className="flex flex-wrap items-baseline justify-between gap-2">
                             <h1 className="text-2xl font-semibold">Amigos</h1>
-                            <span className="text-sm text-content-muted">
-                                {loading
-                                    ? "Carregando..."
-                                    : `${friends.length} ${friends.length === 1 ? "amigo" : "amigos"}`}
-                            </span>
+                            {/* a contagem do resultado fica na barra de filtros */}
+                            <p className="text-sm text-content-muted">
+                                {friends.length} {friends.length === 1 ? "amigo" : "amigos"} no total
+                            </p>
                         </div>
 
-                        {/* Busca real, filtrando a aba atual — antes o botão de lupa
-                            abria o modal de comunidade e não buscava nada */}
-                        <div className="flex w-full items-center gap-2 rounded-full border border-line
-                            bg-surface-2 px-4 py-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand-ring">
-                            <SearchIcon className="size-5 shrink-0 text-content-muted" />
-                            <input
-                                type="search"
-                                aria-label="Buscar amigos pelo nome"
-                                placeholder="Buscar pelo nome..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="w-full bg-transparent text-sm text-content placeholder:text-content-subtle outline-none"
-                            />
-                            {search && (
-                                <button
-                                    type="button"
-                                    onClick={() => setSearch("")}
-                                    aria-label="Limpar busca"
-                                    className="rounded-full p-1 text-content-muted hover:bg-surface-3 hover:text-content
-                                        cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
-                                >
-                                    <CloseIcon className="size-3" />
-                                </button>
-                            )}
-                        </div>
+                        {/* Os filtros vivem no modal; aqui ficam o acesso a ele e
+                            o que estiver aplicado, em chips removíveis */}
+                        <FilterBar
+                            onOpen={openModal}
+                            active={activeFilters}
+                            onRemove={removeFilter}
+                            onClearAll={() => setFilters(EMPTY_FILTERS)}
+                            summary={
+                                loading
+                                    ? "Carregando..."
+                                    : `${filtered.length} ${filtered.length === 1 ? "pessoa" : "pessoas"}`
+                            }
+                        />
 
                         <div role="tablist" aria-label="Listas de amigos" className="flex flex-wrap gap-2">
                             <button
@@ -237,7 +281,7 @@ export default function Home() {
                                 )}
 
                                 <h2 className="text-base font-semibold">
-                                    {search
+                                    {activeFilters.length > 0
                                         ? "Nenhum resultado"
                                         : tab === "friends"
                                             ? "Você ainda não tem amigos por aqui"
@@ -245,12 +289,24 @@ export default function Home() {
                                 </h2>
 
                                 <p className="max-w-sm text-sm text-content-muted">
-                                    {search
-                                        ? `Não encontramos ninguém com "${search}".`
+                                    {activeFilters.length > 0
+                                        ? "Ninguém desta lista combina com os filtros aplicados."
                                         : tab === "friends"
                                             ? "Confira as sugestões ao lado e envie o primeiro convite."
                                             : "Quando alguém te enviar um convite, ele aparece aqui."}
                                 </p>
+
+                                {activeFilters.length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setFilters(EMPTY_FILTERS)}
+                                        className="mt-2 rounded-field px-3 py-1 text-sm font-semibold text-brand
+                                            cursor-pointer hover:bg-surface-2 transition-colors
+                                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                                    >
+                                        Limpar filtros
+                                    </button>
+                                )}
                             </div>
                         )}
                     </div>
@@ -264,6 +320,44 @@ export default function Home() {
                 </aside>
             </div>
 
+            <FilterModal
+                isOpen={modalOpen}
+                onClose={() => setModalOpen(false)}
+                onApply={() => {
+                    setFilters(draft);
+                    setModalOpen(false);
+                }}
+                onClear={() => setDraft(EMPTY_FILTERS)}
+                title="Filtrar pessoas"
+            >
+                <Input
+                    label="Buscar"
+                    type="search"
+                    placeholder="Nome da pessoa"
+                    value={draft.search}
+                    onChange={(e) => setDraft({ ...draft, search: e.target.value })}
+                />
+
+                <Select
+                    label="Estado"
+                    value={draft.uf}
+                    onChange={(e) => setDraft({ ...draft, uf: e.target.value })}
+                    options={[
+                        { value: "", label: "Todos os estados" },
+                        ...availableUfs.map((uf) => ({ value: uf, label: uf })),
+                    ]}
+                />
+
+                <Select
+                    label="Ordenar por"
+                    value={draft.sort}
+                    onChange={(e) => setDraft({ ...draft, sort: e.target.value as Filters["sort"] })}
+                    options={[
+                        { value: "name", label: "Nome (A-Z)" },
+                        { value: "name_desc", label: "Nome (Z-A)" },
+                    ]}
+                />
+            </FilterModal>
         </>
     );
 }
