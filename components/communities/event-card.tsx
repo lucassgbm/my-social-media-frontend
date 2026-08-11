@@ -5,6 +5,8 @@ import Image from "../remote-image";
 import Button from "../button";
 import PinIcon from "../icons/pin";
 import CloseIcon from "../icons/close";
+import UsersIcon from "../icons/users";
+import CheckIcon from "../icons/check";
 import { formatDate, formatTime, type CommunityEvent } from "../../utils/community";
 
 type EventCardProps = {
@@ -93,6 +95,22 @@ export default function EventCard({
                     <span className="truncate">{event.local}</span>
                 </span>
 
+                {/* a contagem só existe nas rotas que anotam presença; sem ela a
+                    linha inteira sai de cena em vez de mostrar "0 confirmados" */}
+                {typeof event.going_count === "number" && (
+                    <span
+                        className={`flex flex-row items-center gap-1 text-xs
+                            ${hasPhoto ? "text-gray-200" : "text-content-muted"}`}
+                    >
+                        <UsersIcon className="size-3 shrink-0" />
+                        <span className="truncate">
+                            {event.going_count === 0
+                                ? "Ninguém confirmou ainda"
+                                : `${event.going_count} ${event.going_count === 1 ? "confirmado" : "confirmados"}`}
+                        </span>
+                    </span>
+                )}
+
                 {/* {event.description && (
                     <p className={`text-xs line-clamp-2 ${hasPhoto ? "text-gray-200" : "text-content-muted"}`}>
                         {event.description}
@@ -115,6 +133,16 @@ export default function EventCard({
                 <span className="absolute left-2 bottom-2 z-20 rounded-full bg-black/60 px-2 py-0.5
                     text-[11px] font-semibold text-white">
                     Encerrado
+                </span>
+            )}
+
+            {/* quem confirmou vê o próprio selo — a contagem acima não diz se
+                a pessoa está entre os confirmados */}
+            {event.viewer_attendance === "going" && (
+                <span className="absolute right-2 bottom-2 z-20 flex flex-row items-center gap-1
+                    rounded-full bg-brand px-2 py-0.5 text-[11px] font-semibold text-on-brand">
+                    <CheckIcon className="size-3 shrink-0" />
+                    Você vai
                 </span>
             )}
 

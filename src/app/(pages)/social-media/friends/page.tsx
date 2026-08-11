@@ -4,12 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import { get, post } from "@/api/services/request";
 import Container from "../../../../../components/container";
 import Sidebar from "../../../../../components/sidebar";
+import PageHeader from "../../../../../components/page-header";
+import StatChip from "../../../../../components/stat-chip";
+import Button from "../../../../../components/button";
 import CardUser from "../../../../../components/users/card-user";
 import PeopleSuggestions from "../../../../../components/users/people-suggestions";
 import RequestFriend from "../../../../../components/friends/request-friend";
 import FilterBar, { type ActiveFilter } from "../../../../../components/filters/filter-bar";
 import FilterModal from "../../../../../components/filters/filter-modal";
-import Input from "../../../../../components/input";
+import SearchField from "../../../../../components/filters/search-field";
 import Select from "../../../../../components/select";
 import Skeleton from "../../../../../components/skeleton";
 import UsersIcon from "../../../../../components/icons/users";
@@ -153,12 +156,12 @@ export default function Home() {
         setModalOpen(true);
     }
 
-    /** Chips do que está aplicado — o padrão fica de fora. */
+    /**
+     * Chips do que está aplicado — o padrão fica de fora. A busca não vira chip:
+     * o campo é visível no cabeçalho e já mostra (e limpa) o termo.
+     */
     const activeFilters: ActiveFilter[] = [];
 
-    if (filters.search.trim() !== "") {
-        activeFilters.push({ id: "search", label: `Busca: ${filters.search}` });
-    }
     if (filters.uf !== "") {
         activeFilters.push({ id: "uf", label: `UF: ${filters.uf}` });
     }
@@ -166,14 +169,12 @@ export default function Home() {
         activeFilters.push({ id: "sort", label: "Nome (Z-A)" });
     }
 
+    /** A busca fica fora dos chips, então entra à parte no estado vazio. */
+    const hasFilters = activeFilters.length > 0 || filters.search.trim() !== "";
+
     function removeFilter(id: string) {
         setFilters((current) => ({ ...current, [id]: EMPTY_FILTERS[id as keyof Filters] }));
     }
-
-    const tabClass = (active: boolean) =>
-        `flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors cursor-pointer
-        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring
-        ${active ? "bg-brand-subtle text-brand" : "text-content-muted hover:bg-surface-2"}`;
 
     return (
         <>
@@ -182,13 +183,47 @@ export default function Home() {
             <div className="flex flex-1 min-w-0 flex-col lg:flex-row gap-4">
                 <Container className="w-full lg:w-[72%] rounded-card min-w-0" padding="p-0">
 
-                    <div className="flex flex-col gap-4 border-b border-line p-4">
-                        <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <h1 className="text-2xl font-semibold">Amigos</h1>
-                            {/* a contagem do resultado fica na barra de filtros */}
-                            <p className="text-sm text-content-muted">
-                                {friends.length} {friends.length === 1 ? "amigo" : "amigos"} no total
-                            </p>
+                    <PageHeader
+                        icon={UsersIcon}
+                        title="Amigos"
+                        subtitle="As pessoas da sua rede e quem quer entrar nela."
+                    >
+                        <SearchField
+                            value={filters.search}
+                            onChange={(search) => setFilters({ ...filters, search })}
+                            label="Buscar pessoas"
+                            placeholder="Buscar pelo nome da pessoa"
+                        />
+
+                        {/* as duas listas viraram chips como os das outras telas —
+                            continuam sendo abas, só mudou a aparência */}
+                        <div
+                            role="tablist"
+                            aria-label="Listas de amigos"
+                            className="flex flex-row flex-wrap items-center gap-2"
+                        >
+                            <StatChip
+                                role="tab"
+                                icon={UsersIcon}
+                                label="meus amigos"
+                                value={friends.length}
+                                active={tab === "friends"}
+                                onClick={() => setTab("friends")}
+                            />
+
+                            <StatChip
+                                role="tab"
+                                icon={InboxIcon}
+                                label="solicitações"
+                                value={requests.length}
+                                active={tab === "requests"}
+                                onClick={() => setTab("requests")}
+                                badge={
+                                    requests.length > 0 && tab !== "requests" ? (
+                                        <span className="size-2 rounded-full bg-danger" aria-hidden="true" />
+                                    ) : null
+                                }
+                            />
                         </div>
 
                         {/* Os filtros vivem no modal; aqui ficam o acesso a ele e
@@ -204,40 +239,9 @@ export default function Home() {
                                     : `${filtered.length} ${filtered.length === 1 ? "pessoa" : "pessoas"}`
                             }
                         />
+                    </PageHeader>
 
-                        <div role="tablist" aria-label="Listas de amigos" className="flex flex-wrap gap-2">
-                            <button
-                                type="button"
-                                role="tab"
-                                aria-selected={tab === "friends"}
-                                onClick={() => setTab("friends")}
-                                className={tabClass(tab === "friends")}
-                            >
-                                <UsersIcon className="size-4" />
-                                Meus amigos
-                                <span className="text-xs opacity-80">{friends.length}</span>
-                            </button>
-
-                            <button
-                                type="button"
-                                role="tab"
-                                aria-selected={tab === "requests"}
-                                onClick={() => setTab("requests")}
-                                className={tabClass(tab === "requests")}
-                            >
-                                <InboxIcon className="size-4" />
-                                Solicitações
-                                {requests.length > 0 && (
-                                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full
-                                        bg-danger px-1.5 text-[11px] font-semibold text-white">
-                                        {requests.length}
-                                    </span>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="p-4">
+                    <div className="p-4 sm:p-6">
                         {loading && (
                             <div className={GRID}>
                                 {Array.from({ length: 8 }).map((_, index) => (
@@ -273,15 +277,19 @@ export default function Home() {
                         )}
 
                         {!loading && filtered.length === 0 && (
-                            <div className="flex flex-col items-center gap-3 py-12 text-center">
-                                {tab === "friends" ? (
-                                    <UsersIcon className="size-10 text-content-subtle" />
-                                ) : (
-                                    <InboxIcon className="size-10 text-content-subtle" />
-                                )}
+                            <div className="flex flex-col items-center gap-3 rounded-card border border-dashed
+                                border-line px-6 py-14 text-center">
+                                <span className="flex size-16 items-center justify-center rounded-full
+                                    bg-brand-subtle text-brand">
+                                    {tab === "friends" ? (
+                                        <UsersIcon className="size-8" />
+                                    ) : (
+                                        <InboxIcon className="size-8" />
+                                    )}
+                                </span>
 
                                 <h2 className="text-base font-semibold">
-                                    {activeFilters.length > 0
+                                    {hasFilters
                                         ? "Nenhum resultado"
                                         : tab === "friends"
                                             ? "Você ainda não tem amigos por aqui"
@@ -289,32 +297,45 @@ export default function Home() {
                                 </h2>
 
                                 <p className="max-w-sm text-sm text-content-muted">
-                                    {activeFilters.length > 0
-                                        ? "Ninguém desta lista combina com os filtros aplicados."
+                                    {hasFilters
+                                        ? "Ninguém desta lista combina com a busca e os filtros aplicados."
                                         : tab === "friends"
                                             ? "Confira as sugestões ao lado e envie o primeiro convite."
                                             : "Quando alguém te enviar um convite, ele aparece aqui."}
                                 </p>
 
-                                {activeFilters.length > 0 && (
-                                    <button
-                                        type="button"
+                                {hasFilters && (
+                                    <Button
+                                        variant="outline"
+                                        size="md"
                                         onClick={() => setFilters(EMPTY_FILTERS)}
-                                        className="mt-2 rounded-field px-3 py-1 text-sm font-semibold text-brand
-                                            cursor-pointer hover:bg-surface-2 transition-colors
-                                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                                        className="mt-1 font-semibold"
                                     >
                                         Limpar filtros
-                                    </button>
+                                    </Button>
                                 )}
                             </div>
                         )}
                     </div>
                 </Container>
 
-                <aside aria-label="Sugestões" className="w-full flex flex-col lg:w-[28%] gap-4">
+                <aside
+                    aria-label="Sugestões"
+                    className="w-full flex flex-col lg:w-[28%] gap-4 lg:sticky lg:top-4 lg:self-start"
+                >
                     <Container className="rounded-card" padding="p-4">
-                        <h2 className="text-lg font-semibold mb-4">Amigos sugeridos</h2>
+                        <div className="mb-4 flex flex-row items-center gap-2">
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-full
+                                bg-brand-subtle text-brand">
+                                <UsersIcon className="size-4" />
+                            </span>
+
+                            <div className="min-w-0">
+                                <h2 className="text-base font-semibold leading-tight">Para você</h2>
+                                <p className="text-xs text-content-muted">Amigos sugeridos</p>
+                            </div>
+                        </div>
+
                         <PeopleSuggestions limit={6} gridClassName="grid grid-cols-2 gap-4" />
                     </Container>
                 </aside>
@@ -324,20 +345,14 @@ export default function Home() {
                 isOpen={modalOpen}
                 onClose={() => setModalOpen(false)}
                 onApply={() => {
-                    setFilters(draft);
+                    // o termo de busca é do campo do cabeçalho: o modal não o toca
+                    setFilters((current) => ({ ...draft, search: current.search }));
                     setModalOpen(false);
                 }}
-                onClear={() => setDraft(EMPTY_FILTERS)}
+                onClear={() => setDraft({ ...EMPTY_FILTERS, search: draft.search })}
                 title="Filtrar pessoas"
             >
-                <Input
-                    label="Buscar"
-                    type="search"
-                    placeholder="Nome da pessoa"
-                    value={draft.search}
-                    onChange={(e) => setDraft({ ...draft, search: e.target.value })}
-                />
-
+                {/* a busca mora no campo do cabeçalho — aqui ficam só os recortes */}
                 <Select
                     label="Estado"
                     value={draft.uf}

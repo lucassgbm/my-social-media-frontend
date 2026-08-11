@@ -5,14 +5,19 @@ import Link from "next/link";
 import Container from "../../../../../components/container";
 import Sidebar from "../../../../../components/sidebar";
 import SidebarFooter from "../../../../../components/sidebar-footer";
+import PageHeader from "../../../../../components/page-header";
+import StatChip from "../../../../../components/stat-chip";
+import Button from "../../../../../components/button";
 import EventCard from "../../../../../components/communities/event-card";
 import FilterBar, { type ActiveFilter } from "../../../../../components/filters/filter-bar";
 import FilterModal from "../../../../../components/filters/filter-modal";
-import Input from "../../../../../components/input";
+import SearchField from "../../../../../components/filters/search-field";
 import Select from "../../../../../components/select";
 import Skeleton from "../../../../../components/skeleton";
 import TrophyIcon from "../../../../../components/icons/trophy";
 import CommunityIcon from "../../../../../components/icons/community";
+import CalendarIcon from "../../../../../components/icons/calendar";
+import ClockIcon from "../../../../../components/icons/clock";
 import { get } from "@/api/services/request";
 import { useToaster } from "../../../../../providers/toaster-provider";
 import type { Community, CommunityEvent, EventFilter } from "../../../../../utils/community";
@@ -35,7 +40,7 @@ const EMPTY_FILTERS: Filters = {
 const PERIOD_LABELS: Record<EventFilter, string> = {
     upcoming: "Próximos",
     past: "Encerrados",
-    all: "Todos os períodos",
+    all: "Todos",
 };
 
 const GRID = "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4";
@@ -118,19 +123,21 @@ export default function EventsPage() {
     }
 
     function applyFilters() {
-        setFilters(draft);
+        // busca e período são dos controles do cabeçalho: o modal não os toca
+        setFilters((current) => ({
+            ...draft,
+            search: current.search,
+            period: current.period,
+        }));
         setModalOpen(false);
     }
 
-    /** Chips do que está aplicado — o padrão fica de fora. */
+    /**
+     * Chips do que está aplicado — o padrão fica de fora. Busca e período não
+     * viram chip: os dois têm controle próprio à vista no cabeçalho.
+     */
     const activeFilters: ActiveFilter[] = [];
 
-    if (filters.search.trim() !== "") {
-        activeFilters.push({ id: "search", label: `Busca: ${filters.search}` });
-    }
-    if (filters.period !== EMPTY_FILTERS.period) {
-        activeFilters.push({ id: "period", label: PERIOD_LABELS[filters.period] });
-    }
     if (filters.communityId !== "") {
         const name = communities.find(
             (community) => String(community.id) === filters.communityId
@@ -141,6 +148,13 @@ export default function EventsPage() {
     if (filters.sort !== EMPTY_FILTERS.sort) {
         activeFilters.push({ id: "sort", label: "Mais distantes primeiro" });
     }
+
+    /**
+     * A busca fica fora dos chips, então entra à parte no estado vazio. O período
+     * não entra: ele escolhe *qual* agenda se está vendo, e o `emptyMessage`
+     * abaixo já tem o texto certo para cada uma.
+     */
+    const hasFilters = activeFilters.length > 0 || filters.search.trim() !== "";
 
     function removeFilter(id: string) {
         setFilters((current) => ({ ...current, [id]: EMPTY_FILTERS[id as keyof Filters] }));
@@ -160,12 +174,39 @@ export default function EventsPage() {
             <div className="flex flex-1 min-w-0 flex-col lg:flex-row gap-4">
                 <Container className="w-full lg:w-[72%] rounded-card min-w-0" padding="p-0">
 
-                    <div className="flex flex-col gap-4 border-b border-line p-4">
-                        <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <h1 className="text-2xl font-semibold">Eventos</h1>
-                            <p className="text-sm text-content-muted">
-                                A agenda das comunidades de que você participa.
-                            </p>
+                    <PageHeader
+                        icon={TrophyIcon}
+                        title="Eventos"
+                        subtitle="A agenda das comunidades de que você participa."
+                    >
+                        <SearchField
+                            value={filters.search}
+                            onChange={(search) => setFilters({ ...filters, search })}
+                            label="Buscar eventos"
+                            placeholder="Buscar por nome, local ou comunidade"
+                        />
+
+                        {/* o período recorta a agenda inteira (a API refaz a busca),
+                            então vale um atalho à vista em vez de só no modal */}
+                        <div className="flex flex-row flex-wrap items-center gap-2">
+                            <StatChip
+                                icon={CalendarIcon}
+                                label={PERIOD_LABELS.upcoming}
+                                active={filters.period === "upcoming"}
+                                onClick={() => setFilters({ ...filters, period: "upcoming" })}
+                            />
+                            <StatChip
+                                icon={ClockIcon}
+                                label={PERIOD_LABELS.past}
+                                active={filters.period === "past"}
+                                onClick={() => setFilters({ ...filters, period: "past" })}
+                            />
+                            <StatChip
+                                icon={TrophyIcon}
+                                label={PERIOD_LABELS.all}
+                                active={filters.period === "all"}
+                                onClick={() => setFilters({ ...filters, period: "all" })}
+                            />
                         </div>
 
                         <FilterBar
@@ -179,9 +220,9 @@ export default function EventsPage() {
                                     : `${filtered.length} ${filtered.length === 1 ? "evento" : "eventos"}`
                             }
                         />
-                    </div>
+                    </PageHeader>
 
-                    <div className="p-4">
+                    <div className="p-4 sm:p-6">
                         {loading && (
                             <div className={GRID}>
                                 {Array.from({ length: 6 }).map((_, index) => (
@@ -204,32 +245,38 @@ export default function EventsPage() {
                         )}
 
                         {!loading && filtered.length === 0 && (
-                            <div className="flex flex-col items-center gap-3 py-12 text-center">
-                                <TrophyIcon className="size-10 text-content-subtle" />
+                            <div className="flex flex-col items-center gap-3 rounded-card border border-dashed
+                                border-line px-6 py-14 text-center">
+                                <span className="flex size-16 items-center justify-center rounded-full
+                                    bg-brand-subtle text-brand">
+                                    <TrophyIcon className="size-8" />
+                                </span>
+
                                 <h2 className="text-base font-semibold">
-                                    {activeFilters.length > 0 ? "Nenhum resultado" : "Nada na agenda"}
+                                    {hasFilters ? "Nenhum resultado" : "Nada na agenda"}
                                 </h2>
+
                                 <p className="max-w-sm text-sm text-content-muted">
-                                    {activeFilters.length > 0
-                                        ? "Nenhum evento combina com os filtros aplicados."
+                                    {hasFilters
+                                        ? "Nenhum evento combina com a busca e os filtros aplicados."
                                         : emptyMessage}
                                 </p>
 
-                                {activeFilters.length > 0 ? (
-                                    <button
-                                        type="button"
+                                {hasFilters ? (
+                                    <Button
+                                        variant="outline"
+                                        size="md"
                                         onClick={() => setFilters(EMPTY_FILTERS)}
-                                        className="mt-2 rounded-field px-3 py-1 text-sm font-semibold text-brand
-                                            cursor-pointer hover:bg-surface-2 transition-colors
-                                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                                        className="mt-1 font-semibold"
                                     >
                                         Limpar filtros
-                                    </button>
+                                    </Button>
                                 ) : (
                                     <Link
                                         href="/social-media/communities"
-                                        className="mt-2 rounded-field px-3 py-1 text-sm font-semibold text-brand
-                                            hover:bg-surface-2 transition-colors
+                                        className="mt-1 inline-flex items-center justify-center rounded-full
+                                            border-2 border-brand px-4 py-2 text-sm font-semibold text-brand
+                                            transition-colors hover:bg-brand-subtle
                                             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
                                     >
                                         Ver comunidades
@@ -240,11 +287,21 @@ export default function EventsPage() {
                     </div>
                 </Container>
 
-                <aside aria-label="Sobre a agenda" className="w-full lg:w-[28%] flex flex-col gap-4">
+                <aside
+                    aria-label="Sobre a agenda"
+                    className="w-full lg:w-[28%] flex flex-col gap-4 lg:sticky lg:top-4 lg:self-start"
+                >
                     <Container className="rounded-card" padding="p-4">
-                        <div className="flex flex-row items-center justify-between mb-4">
-                            <h2 className="text-lg font-semibold">Como funciona</h2>
-                            <CommunityIcon className="size-5 text-content-muted" />
+                        <div className="mb-4 flex flex-row items-center gap-2">
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-full
+                                bg-brand-subtle text-brand">
+                                <CommunityIcon className="size-4" />
+                            </span>
+
+                            <div className="min-w-0">
+                                <h2 className="text-base font-semibold leading-tight">Como funciona</h2>
+                                <p className="text-xs text-content-muted">De onde vêm os eventos</p>
+                            </div>
                         </div>
 
                         <p className="text-sm text-content-muted">
@@ -261,28 +318,10 @@ export default function EventsPage() {
                 isOpen={modalOpen}
                 onClose={() => setModalOpen(false)}
                 onApply={applyFilters}
-                onClear={() => setDraft(EMPTY_FILTERS)}
+                onClear={() => setDraft({ ...EMPTY_FILTERS, search: draft.search, period: draft.period })}
                 title="Filtrar eventos"
             >
-                <Input
-                    label="Buscar"
-                    type="search"
-                    placeholder="Nome, local ou comunidade"
-                    value={draft.search}
-                    onChange={(e) => setDraft({ ...draft, search: e.target.value })}
-                />
-
-                <Select
-                    label="Período"
-                    value={draft.period}
-                    onChange={(e) => setDraft({ ...draft, period: e.target.value as EventFilter })}
-                    options={[
-                        { value: "upcoming", label: "Próximos" },
-                        { value: "past", label: "Encerrados" },
-                        { value: "all", label: "Todos" },
-                    ]}
-                />
-
+                {/* busca e período têm controle próprio no cabeçalho */}
                 <Select
                     label="Comunidade"
                     value={draft.communityId}

@@ -11,18 +11,25 @@ import Textarea from "../../../../../components/textarea";
 import FormButtom from "../../../../../components/form-buttom";
 import Sidebar from "../../../../../components/sidebar";
 import Skeleton from "../../../../../components/skeleton";
+import PageHeader from "../../../../../components/page-header";
+import StatChip from "../../../../../components/stat-chip";
 import ListCommunities from "../../../../../components/communities/list-communities";
+import InviteList from "../../../../../components/communities/invite-list";
 import FilterBar, { type ActiveFilter } from "../../../../../components/filters/filter-bar";
 import FilterModal from "../../../../../components/filters/filter-modal";
+import SearchField from "../../../../../components/filters/search-field";
 import Select from "../../../../../components/select";
 import PhotoIcon from "../../../../../components/icons/photo";
 import CommunityIcon from "../../../../../components/icons/community";
 import PlusIcon from "../../../../../components/icons/plus";
+import UsersIcon from "../../../../../components/icons/users";
+import TrophyIcon from "../../../../../components/icons/trophy";
 import { AppContext } from "../layout";
 import { get, postFormData } from "@/api/services/request";
 import CommunitySuggestions from "../../../../../components/communities/community-suggestions";
+import InboxIcon from "../../../../../components/icons/inbox";
 import { useToaster } from "../../../../../providers/toaster-provider";
-import type { Community } from "../../../../../utils/community";
+import type { Community, CommunityInvite } from "../../../../../utils/community";
 
 type Category = { id: number; name: string };
 
@@ -54,7 +61,7 @@ const SORT_LABELS: Record<Filters["sort"], string> = {
     members: "Mais membros",
 };
 
-const GRID = "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4";
+const GRID = "grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-4";
 
 type NewCommunityErrors = {
     name?: string;
@@ -69,7 +76,12 @@ export default function Home() {
 
     const [communities, setCommunities] = useState<Community[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
+    const [invites, setInvites] = useState<CommunityInvite[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // os convites recebidos são uma lista à parte, não um recorte das
+    // comunidades: por isso um modo de exibição, e não mais um valor de filtro
+    const [showInvites, setShowInvites] = useState(false);
 
     const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
     // rascunho do modal: a lista só muda quando se aplica
@@ -96,9 +108,10 @@ export default function Home() {
         setLoading(true);
 
         // get() engole o erro e devolve undefined
-        const [communitiesResponse, categoriesResponse] = await Promise.all([
+        const [communitiesResponse, categoriesResponse, invitesResponse] = await Promise.all([
             get("/social-media/community"),
             get("/category"),
+            get("/social-media/community-invites"),
         ]);
 
         if (!communitiesResponse) {
@@ -111,7 +124,20 @@ export default function Home() {
 
         setCommunities(communitiesResponse?.data ?? []);
         setCategories(categoriesResponse?.data ?? []);
+        setInvites(invitesResponse?.data ?? []);
         setLoading(false);
+    }
+
+    /** Aceitar entra na comunidade, então a listagem inteira é refeita. */
+    function handleInviteResponded(inviteId: number, accepted: boolean) {
+        const remaining = invites.filter((invite) => invite.id !== inviteId);
+
+        setInvites(remaining);
+
+        // sem convites não há aba de convites: sair dela evita uma tela vazia
+        if (remaining.length === 0) setShowInvites(false);
+
+        if (accepted) loadAll();
     }
 
     const filtered = useMemo(() => {
@@ -149,17 +175,50 @@ export default function Home() {
         return result;
     }, [communities, filters, myInfo?.id]);
 
+    /** id -> nome, para o selo de categoria dos cards. */
+    const categoryNames = useMemo(() => {
+        const map: Record<number, string> = {};
+        categories.forEach((category) => {
+            map[category.id] = category.name;
+        });
+
+        return map;
+    }, [categories]);
+
+    const counts = useMemo(() => {
+        const joined = communities.filter((community) =>
+            ["owner", "admin", "member"].includes(community.viewer_role ?? "none")
+        ).length;
+
+        const mine = communities.filter(
+            (community) => community.owner_id === myInfo?.id
+        ).length;
+
+        return { total: communities.length, joined, mine };
+    }, [communities, myInfo?.id]);
+
+    /** Alterna o filtro de participação — clicar no chip ativo volta para "todas". */
+    function toggleMembership(value: Filters["membership"]) {
+        // os recortes são da listagem: escolher um sai da caixa de convites
+        setShowInvites(false);
+
+        setFilters((current) => ({
+            ...current,
+            membership: current.membership === value ? "all" : value,
+        }));
+    }
+
     function openModal() {
         setDraft(filters);
         setFilterModal(true);
     }
 
-    /** Chips do que está aplicado — o padrão fica de fora. */
+    /**
+     * Chips do que está aplicado — o padrão fica de fora. A busca não vira chip:
+     * o campo é visível no cabeçalho e já mostra (e limpa) o termo.
+     */
     const activeFilters: ActiveFilter[] = [];
 
-    if (filters.search.trim() !== "") {
-        activeFilters.push({ id: "search", label: `Busca: ${filters.search}` });
-    }
     if (filters.categoryId !== "") {
         const name = categories.find(
             (category) => String(category.id) === filters.categoryId
@@ -173,6 +232,9 @@ export default function Home() {
     if (filters.sort !== EMPTY_FILTERS.sort) {
         activeFilters.push({ id: "sort", label: SORT_LABELS[filters.sort] });
     }
+
+    /** A busca fica fora dos chips, então entra à parte no estado vazio. */
+    const hasFilters = activeFilters.length > 0 || filters.search.trim() !== "";
 
     function removeFilter(id: string) {
         setFilters((current) => ({ ...current, [id]: EMPTY_FILTERS[id as keyof Filters] }));
@@ -266,34 +328,11 @@ export default function Home() {
             <div className="flex flex-1 min-w-0 flex-col lg:flex-row gap-4">
                 <Container className="w-full lg:w-[72%] rounded-card min-w-0" padding="p-0">
 
-                    <div className="flex flex-col gap-4 border-b border-line p-4">
-                        <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <h1 className="text-2xl font-semibold">Comunidades</h1>
-                            <span className="text-sm text-content-muted">
-                                {loading
-                                    ? "Carregando..."
-                                    : `${communities.length} ${communities.length === 1 ? "comunidade" : "comunidades"}`}
-                            </span>
-                        </div>
-
-                        {/* A lista de categorias crescia sem limite no cabeçalho;
-                            agora todos os filtros moram no modal e só o que está
-                            aplicado volta como chip */}
-                        <div className="flex flex-col sm:flex-row sm:items-start gap-2">
-                            <div className="flex-1 min-w-0">
-                                <FilterBar
-                                    onOpen={openModal}
-                                    active={activeFilters}
-                                    onRemove={removeFilter}
-                                    onClearAll={() => setFilters(EMPTY_FILTERS)}
-                                    summary={
-                                        loading
-                                            ? "Carregando..."
-                                            : `${filtered.length} ${filtered.length === 1 ? "comunidade" : "comunidades"}`
-                                    }
-                                />
-                            </div>
-
+                    <PageHeader
+                        icon={CommunityIcon}
+                        title="Comunidades"
+                        subtitle="Encontre gente que curte o que você curte."
+                        action={
                             <ColorButton
                                 onClick={() => setModalNewCommunity(true)}
                                 className="shrink-0 px-4 text-sm font-semibold"
@@ -301,59 +340,155 @@ export default function Home() {
                                 <PlusIcon className="size-4 shrink-0" />
                                 Criar comunidade
                             </ColorButton>
-                        </div>
-                    </div>
+                        }
+                    >
+                        <SearchField
+                            value={filters.search}
+                            onChange={(search) => setFilters({ ...filters, search })}
+                            label="Buscar comunidades"
+                            placeholder="Buscar por nome ou descrição"
+                        />
 
-                    <div className="p-4">
+                        {!loading && (
+                            <div className="flex flex-row flex-wrap items-center gap-2">
+                                <StatChip
+                                    icon={CommunityIcon}
+                                    label="no total"
+                                    value={counts.total}
+                                    active={!showInvites && filters.membership === "all"}
+                                    onClick={() => toggleMembership("all")}
+                                />
+                                <StatChip
+                                    icon={UsersIcon}
+                                    label="que participo"
+                                    value={counts.joined}
+                                    active={!showInvites && filters.membership === "joined"}
+                                    onClick={() => toggleMembership("joined")}
+                                />
+                                <StatChip
+                                    icon={TrophyIcon}
+                                    label="criadas por mim"
+                                    value={counts.mine}
+                                    active={!showInvites && filters.membership === "mine"}
+                                    onClick={() => toggleMembership("mine")}
+                                />
+
+                                {/* só existe enquanto há convite pendente — um chip
+                                    zerado levaria a uma tela vazia */}
+                                {invites.length > 0 && (
+                                    <StatChip
+                                        icon={InboxIcon}
+                                        label={invites.length === 1 ? "convite" : "convites"}
+                                        value={invites.length}
+                                        active={showInvites}
+                                        onClick={() => setShowInvites((current) => !current)}
+                                        badge={
+                                            showInvites ? null : (
+                                                <span
+                                                    className="size-2 rounded-full bg-danger"
+                                                    aria-hidden="true"
+                                                />
+                                            )
+                                        }
+                                    />
+                                )}
+                            </div>
+                        )}
+
+                        {/* A lista de categorias crescia sem limite no cabeçalho;
+                            agora todos os filtros moram no modal e só o que está
+                            aplicado volta como chip. Nos convites eles não valem:
+                            a caixa é curta e não é uma listagem de comunidades */}
+                        {!showInvites && (
+                            <FilterBar
+                                onOpen={openModal}
+                                active={activeFilters}
+                                onRemove={removeFilter}
+                                onClearAll={() => setFilters(EMPTY_FILTERS)}
+                                summary={
+                                    loading
+                                        ? "Carregando..."
+                                        : `${filtered.length} ${filtered.length === 1 ? "comunidade" : "comunidades"}`
+                                }
+                            />
+                        )}
+                    </PageHeader>
+
+                    <div className="p-4 sm:p-6">
+                        {!loading && showInvites && (
+                            <div className="flex flex-col gap-4">
+                                <p className="text-sm text-content-muted">
+                                    {invites.length === 1
+                                        ? "Um amigo te convidou para uma comunidade."
+                                        : `${invites.length} amigos te convidaram para comunidades.`}
+                                </p>
+
+                                <InviteList
+                                    invites={invites}
+                                    onResponded={handleInviteResponded}
+                                />
+                            </div>
+                        )}
+
                         {loading && (
                             <div className={GRID}>
+                                {/* o esqueleto acompanha o card: capa + corpo */}
                                 {Array.from({ length: 6 }).map((_, index) => (
-                                    <Skeleton
+                                    <div
                                         key={index}
-                                        width="w-full"
-                                        rounded="card"
-                                        className="aspect-[16/9]"
-                                    />
+                                        className="overflow-hidden rounded-card border border-line bg-surface"
+                                    >
+                                        <Skeleton width="w-full" className="aspect-[16/9]" rounded="sm" />
+
+                                        <div className="flex flex-col gap-2 p-4">
+                                            <Skeleton width="w-2/3" height="h-4" rounded="field" />
+                                            <Skeleton width="w-full" height="h-3" rounded="field" />
+                                            <Skeleton width="w-1/3" height="h-3" rounded="field" />
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
                         )}
 
-                        {!loading && filtered.length > 0 && (
+                        {!loading && !showInvites && filtered.length > 0 && (
                             <div className={GRID}>
-                                <ListCommunities communities={filtered} />
+                                <ListCommunities communities={filtered} categoryNames={categoryNames} />
                             </div>
                         )}
 
-                        {!loading && filtered.length === 0 && (
-                            <div className="flex flex-col items-center gap-3 py-12 text-center">
-                                <CommunityIcon className="size-10 text-content-subtle" />
+                        {!loading && !showInvites && filtered.length === 0 && (
+                            <div className="flex flex-col items-center gap-3 rounded-card border border-dashed
+                                border-line px-6 py-14 text-center">
+                                <span className="flex size-16 items-center justify-center rounded-full
+                                    bg-brand-subtle text-brand">
+                                    <CommunityIcon className="size-8" />
+                                </span>
 
                                 <h2 className="text-base font-semibold">
-                                    {activeFilters.length > 0
+                                    {hasFilters
                                         ? "Nenhum resultado"
                                         : "Nenhuma comunidade por aqui"}
                                 </h2>
 
                                 <p className="max-w-sm text-sm text-content-muted">
-                                    {activeFilters.length > 0
-                                        ? "Nenhuma comunidade combina com os filtros aplicados."
+                                    {hasFilters
+                                        ? "Nenhuma comunidade combina com a busca e os filtros aplicados."
                                         : "Crie a primeira e convide as pessoas para participar."}
                                 </p>
 
-                                {activeFilters.length > 0 ? (
-                                    <button
-                                        type="button"
+                                {hasFilters ? (
+                                    <Button
+                                        variant="outline"
+                                        size="md"
                                         onClick={() => setFilters(EMPTY_FILTERS)}
-                                        className="mt-2 rounded-field px-3 py-1 text-sm font-semibold text-brand
-                                            cursor-pointer hover:bg-surface-2 transition-colors
-                                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                                        className="mt-1 font-semibold"
                                     >
                                         Limpar filtros
-                                    </button>
+                                    </Button>
                                 ) : (
                                     <ColorButton
                                         onClick={() => setModalNewCommunity(true)}
-                                        className="px-4 text-sm font-semibold"
+                                        className="mt-1 px-4 text-sm font-semibold"
                                     >
                                         <PlusIcon className="size-4" />
                                         Criar comunidade
@@ -364,9 +499,22 @@ export default function Home() {
                     </div>
                 </Container>
 
-                <aside aria-label="Sugestões" className="w-full flex flex-col lg:w-[28%] gap-4">
+                <aside
+                    aria-label="Sugestões"
+                    className="w-full flex flex-col lg:w-[28%] gap-4 lg:sticky lg:top-4 lg:self-start"
+                >
                     <Container className="rounded-card" padding="p-4">
-                        <h2 className="text-lg font-semibold mb-4">Comunidades sugeridas</h2>
+                        <div className="mb-4 flex flex-row items-center gap-2">
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-full
+                                bg-brand-subtle text-brand">
+                                <UsersIcon className="size-4" />
+                            </span>
+
+                            <div className="min-w-0">
+                                <h2 className="text-base font-semibold leading-tight">Para você</h2>
+                                <p className="text-xs text-content-muted">Comunidades sugeridas</p>
+                            </div>
+                        </div>
 
                         <CommunitySuggestions
                             limit={4}
@@ -489,20 +637,14 @@ export default function Home() {
                 isOpen={filterModal}
                 onClose={() => setFilterModal(false)}
                 onApply={() => {
-                    setFilters(draft);
+                    // o termo de busca é do campo do cabeçalho: o modal não o toca
+                    setFilters((current) => ({ ...draft, search: current.search }));
                     setFilterModal(false);
                 }}
-                onClear={() => setDraft(EMPTY_FILTERS)}
+                onClear={() => setDraft({ ...EMPTY_FILTERS, search: draft.search })}
                 title="Filtrar comunidades"
             >
-                <Input
-                    label="Buscar"
-                    type="search"
-                    placeholder="Nome ou descrição"
-                    value={draft.search}
-                    onChange={(e) => setDraft({ ...draft, search: e.target.value })}
-                />
-
+                {/* a busca mora no campo do cabeçalho — aqui ficam só os recortes */}
                 <Select
                     label="Categoria"
                     value={draft.categoryId}

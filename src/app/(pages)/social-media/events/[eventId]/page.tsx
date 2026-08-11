@@ -10,6 +10,8 @@ import Sidebar from "../../../../../../components/sidebar";
 import SidebarFooter from "../../../../../../components/sidebar-footer";
 import Button from "../../../../../../components/button";
 import Skeleton from "../../../../../../components/skeleton";
+import AttendanceButtons from "../../../../../../components/communities/attendance-buttons";
+import AttendanceSummary from "../../../../../../components/communities/attendance-summary";
 import ArrowLeftIcon from "../../../../../../components/icons/arrow-left";
 import TrophyIcon from "../../../../../../components/icons/trophy";
 import PinIcon from "../../../../../../components/icons/pin";
@@ -25,7 +27,20 @@ import {
     formatTime,
     type Community,
     type CommunityEvent,
+    type EventAttendee,
 } from "../../../../../../utils/community";
+
+const ATTENDANCE_LABELS: Record<EventAttendee["attendance_status"], string> = {
+    going: "Vai",
+    maybe: "Talvez",
+    declined: "Não vai",
+};
+
+const ATTENDANCE_BADGE: Record<EventAttendee["attendance_status"], string> = {
+    going: "bg-brand-subtle text-brand",
+    maybe: "bg-surface-3 text-content-muted",
+    declined: "bg-surface-3 text-content-subtle",
+};
 
 /**
  * Página de um evento, com o cartão da comunidade que o organiza.
@@ -42,13 +57,17 @@ export default function EventPage() {
 
     const [event, setEvent] = useState<CommunityEvent | null>(null);
     const [community, setCommunity] = useState<Community | null>(null);
+    const [attendees, setAttendees] = useState<EventAttendee[]>([]);
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
 
     const loadEvent = useCallback(async () => {
         setLoading(true);
 
-        const response = await get(`/social-media/events/${eventId}`);
+        const [response, attendeesResponse] = await Promise.all([
+            get(`/social-media/events/${eventId}`),
+            get(`/social-media/events/${eventId}/attendees`),
+        ]);
 
         // get() devolve undefined tanto no 404 quanto em falha de rede
         if (!response?.data?.event) {
@@ -59,12 +78,28 @@ export default function EventPage() {
             setCommunity(response.data.community as Community);
         }
 
+        // 404 aqui é quem foi bloqueado na comunidade: a lista fica vazia
+        setAttendees(attendeesResponse?.data ?? []);
         setLoading(false);
     }, [eventId]);
 
     useEffect(() => {
         loadEvent();
     }, [loadEvent]);
+
+    /**
+     * Recarrega só a lista de presença depois de responder.
+     *
+     * As contagens vêm na resposta da própria ação, mas os nomes não — e é a
+     * lista que precisa passar a mostrar (ou deixar de mostrar) quem respondeu.
+     */
+    async function handleAttendanceChange(updated: CommunityEvent) {
+        setEvent(updated);
+
+        const response = await get(`/social-media/events/${eventId}/attendees`);
+
+        setAttendees(response?.data ?? []);
+    }
 
     async function handleDelete() {
         if (!community) return;
@@ -200,6 +235,35 @@ export default function EventPage() {
                                     </div>
                                 </dl>
 
+                                {/* Presença: o resumo aparece para todo mundo que vê o
+                                    evento; os botões, só para quem participa da
+                                    comunidade e num evento que ainda não terminou */}
+                                <div className="flex flex-col gap-3 rounded-card border border-line
+                                    bg-surface-2 p-4">
+                                    <AttendanceSummary event={event} />
+
+                                    {event.can_attend ? (
+                                        <>
+                                            <p className="text-sm text-content-muted">
+                                                {event.viewer_attendance
+                                                    ? "Mudou de ideia? É só escolher outra resposta — ou clicar na atual para desmarcar."
+                                                    : "Você vai a este evento?"}
+                                            </p>
+
+                                            <AttendanceButtons
+                                                event={event}
+                                                onChange={handleAttendanceChange}
+                                            />
+                                        </>
+                                    ) : (
+                                        <p className="text-sm text-content-muted">
+                                            {event.is_past
+                                                ? "O evento já terminou."
+                                                : "Entre na comunidade para confirmar presença."}
+                                        </p>
+                                    )}
+                                </div>
+
                                 {event.description && (
                                     <p className="text-sm text-content whitespace-pre-line break-words">
                                         {event.description}
@@ -223,6 +287,48 @@ export default function EventPage() {
                 </div>
 
                 <aside aria-label="Comunidade organizadora" className="w-full xl:w-[340px] xl:shrink-0 flex flex-col gap-4">
+                    {!loading && event && attendees.length > 0 && (
+                        <Container className="rounded-card" padding="p-4">
+                            <div className="flex flex-row items-center justify-between mb-4">
+                                <h2 className="text-lg font-semibold">Quem respondeu</h2>
+                                <UsersIcon className="size-5 text-content-muted" />
+                            </div>
+
+                            <ul className="flex flex-col gap-1 list-none">
+                                {attendees.map((person) => (
+                                    <li key={person.id}>
+                                        <Link
+                                            href={`/social-media/profile/${person.id}`}
+                                            className="flex flex-row items-center gap-3 rounded-card p-2
+                                                hover:bg-surface-2 transition-colors
+                                                focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                                        >
+                                            <Image
+                                                src={person.photo || "/imgs/placeholder.png"}
+                                                alt=""
+                                                width={36}
+                                                height={36}
+                                                sizes="36px"
+                                                className="size-9 shrink-0 rounded-full object-cover bg-surface-2"
+                                            />
+
+                                            <span className="flex-1 min-w-0 truncate text-sm font-semibold">
+                                                {person.name}
+                                            </span>
+
+                                            <span
+                                                className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold
+                                                    ${ATTENDANCE_BADGE[person.attendance_status]}`}
+                                            >
+                                                {ATTENDANCE_LABELS[person.attendance_status]}
+                                            </span>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        </Container>
+                    )}
+
                     {!loading && community && (
                         <Container className="rounded-card" padding="p-4">
                             <div className="flex flex-row items-center justify-between mb-4">

@@ -17,6 +17,7 @@ import EventDetailsModal from "../../../../../../components/communities/event-de
 import TopicModal from "../../../../../../components/communities/topic-modal";
 import PhotoModal from "../../../../../../components/communities/photo-modal";
 import EventModal from "../../../../../../components/communities/event-modal";
+import InviteFriendsModal from "../../../../../../components/communities/invite-friends-modal";
 import Skeleton from "../../../../../../components/skeleton";
 import PinIcon from "../../../../../../components/icons/pin";
 import TrophyIcon from "../../../../../../components/icons/trophy";
@@ -73,6 +74,7 @@ export default function CommunityPage() {
     const [topicModal, setTopicModal] = useState(false);
     const [photoModal, setPhotoModal] = useState(false);
     const [eventModal, setEventModal] = useState(false);
+    const [inviteModal, setInviteModal] = useState(false);
     const [viewingEvent, setViewingEvent] = useState<CommunityEvent | null>(null);
     const [managing, setManaging] = useState<CommunityMember | null>(null);
 
@@ -194,6 +196,20 @@ export default function CommunityPage() {
         }
     }
 
+    /**
+     * Espelha a resposta de presença na agenda e no modal aberto.
+     *
+     * O modal recebe o evento por prop, então atualizar só a lista deixaria os
+     * botões marcando a resposta anterior até fechar e reabrir.
+     */
+    function handleAttendanceChange(updated: CommunityEvent) {
+        setEvents((current) =>
+            current.map((event) => (event.id === updated.id ? updated : event))
+        );
+
+        setViewingEvent((current) => (current?.id === updated.id ? updated : current));
+    }
+
     const tabClass = (active: boolean) =>
         `flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors cursor-pointer
         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring
@@ -278,6 +294,20 @@ export default function CommunityPage() {
                                             )}
                                             {isMember ? "Participando" : "Participar"}
                                         </ColorButton>
+                                    )}
+
+                                    {/* convidar é de quem participa, não só de quem
+                                        administra: é o que faz a comunidade crescer */}
+                                    {isMember && (
+                                        <Button
+                                            variant="outline"
+                                            size="md"
+                                            className="shrink-0 font-semibold"
+                                            onClick={() => setInviteModal(true)}
+                                        >
+                                            <UsersIcon className="size-4 shrink-0" />
+                                            <span className="hidden sm:inline">Convidar amigos</span>
+                                        </Button>
                                     )}
 
                                     {canManage && (
@@ -627,6 +657,14 @@ export default function CommunityPage() {
                 onClose={() => setViewingEvent(null)}
                 event={viewingEvent}
                 onDelete={handleDeleteEvent}
+                onAttendanceChange={handleAttendanceChange}
+            />
+
+            <InviteFriendsModal
+                isOpen={inviteModal}
+                onClose={() => setInviteModal(false)}
+                communityId={communityId}
+                communityName={community?.name}
             />
 
             <MemberManageModal

@@ -22,16 +22,18 @@ export default function CommunityCard({ community, showMembership = true }: Comm
     return (
         <Link
             href={`/social-media/communities/${community.id}`}
-            className="rounded-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+            className="group rounded-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
         >
-            <Card className="flex flex-row items-center gap-3 p-3 transition-shadow hover:shadow-md">
+            <Card className="flex flex-row items-center gap-3 p-3 transition duration-300
+                group-hover:-translate-y-0.5 group-hover:border-brand/50 group-hover:shadow-md">
                 <Image
                     src={community.photo || "/imgs/placeholder.png"}
                     alt=""
                     width={48}
                     height={48}
                     sizes="48px"
-                    className="w-12 aspect-square rounded-full object-cover shrink-0 bg-surface-2"
+                    className="w-12 aspect-square rounded-full object-cover shrink-0 bg-surface-2
+                        ring-2 ring-transparent transition-colors group-hover:ring-brand/40"
                 />
 
                 <div className="flex flex-col min-w-0 flex-1">

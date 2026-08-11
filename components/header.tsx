@@ -4,7 +4,6 @@ import { useContext, useEffect, useRef, useState } from "react";
 import Image from "./remote-image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import SearchIcon from "./icons/search";
 import CloseIcon from "./icons/close";
 import MenuIcon from "./icons/menu";
 import ThemeToggle from "./theme-toggle";
@@ -14,6 +13,7 @@ import Skeleton from "./skeleton";
 import Button from "./button";
 import RingImage from "./ring-image";
 import Submenu from "./submenu";
+import GlobalSearch from "./search/global-search";
 import { accountNavItems, primaryNavItems, isNavItemActive } from "./nav-items";
 
 export default function Header() {
@@ -88,15 +88,7 @@ export default function Header() {
                     </Link>
                 </div>
 
-                <div className="hidden md:flex flex-1 max-w-md items-center gap-2 rounded-full border border-line bg-surface-2 px-5 py-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand-ring">
-                    <SearchIcon className="size-5 shrink-0 text-content-muted" />
-                    <input
-                        type="search"
-                        aria-label="Buscar"
-                        placeholder="Buscar.."
-                        className="w-full bg-transparent text-sm text-content placeholder:text-content-subtle outline-none"
-                    />
-                </div>
+                <GlobalSearch className="hidden md:block flex-1 max-w-md" />
 
                 <div className="hidden md:flex shrink-0 items-center gap-4">
                     <div className="flex flex-row gap-2">
@@ -176,15 +168,9 @@ export default function Header() {
                         // top-full ancora no header — antes era top-14 fixo,
                         // que quebrava se a altura do header mudasse.
                         <div className="absolute left-0 top-full w-full border-b border-line bg-surface p-4 shadow-lg z-50">
-                            <div className="flex w-full items-center gap-2 rounded-full border border-line bg-surface-2 px-5 py-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand-ring">
-                                <SearchIcon className="size-5 shrink-0 text-content-muted" />
-                                <input
-                                    type="search"
-                                    aria-label="Buscar"
-                                    placeholder="Buscar.."
-                                    className="w-full bg-transparent text-sm text-content placeholder:text-content-subtle outline-none"
-                                />
-                            </div>
+                            {/* fecha o menu ao escolher um resultado: sem isso
+                                a gaveta continuaria aberta sobre a nova tela */}
+                            <GlobalSearch onNavigate={() => setMobileOpen(false)} />
 
                             <div className="mt-4 flex w-full justify-end border-b border-line pb-3">
                                 <ThemeToggle />

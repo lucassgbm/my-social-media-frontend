@@ -12,7 +12,7 @@ import PhotoIcon from "../../../../components/icons/photo";
 import Button from "../../../../components/button";
 import AirPlaneIcon from "../../../../components/icons/airplane";
 import { post, get, postFormData } from "../../../api/services/request";
-import ListStories from "../../../../components/list-stories";
+import Stories from "../../../../components/stories/stories";
 import Skeleton from "../../../../components/skeleton";
 import { AppContext } from "./layout";
 import RingImage from "../../../../components/ring-image";
@@ -165,7 +165,7 @@ export default function Home() {
       <Sidebar />
       <div className="flex-1 min-w-0">
 
-        <ListStories />
+        <Stories />
           <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
             <div className="w-full min-w-0 lg:flex-1 mb-4">
               <Container className="flex flex-row gap-2 mb-4 items-center rounded-card">

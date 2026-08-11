@@ -3,6 +3,8 @@
 import Image from "../remote-image";
 import Modal from "../modal";
 import Button from "../button";
+import AttendanceButtons from "./attendance-buttons";
+import AttendanceSummary from "./attendance-summary";
 import PinIcon from "../icons/pin";
 import CalendarIcon from "../icons/calendar";
 import ClockIcon from "../icons/clock";
@@ -13,6 +15,8 @@ type EventDetailsModalProps = {
     onClose: () => void;
     event: CommunityEvent | null;
     onDelete?: (eventId: number) => void;
+    /** Propaga a resposta de presença para a agenda que abriu o modal. */
+    onAttendanceChange?: (event: CommunityEvent) => void;
 };
 
 /** Informações completas do evento — o card da agenda mostra só o resumo. */
@@ -21,6 +25,7 @@ export default function EventDetailsModal({
     onClose,
     event,
     onDelete,
+    onAttendanceChange,
 }: EventDetailsModalProps) {
     if (!event) return null;
 
@@ -67,6 +72,12 @@ export default function EventDetailsModal({
                         <dd className="break-words">{event.local}</dd>
                     </div>
                 </dl>
+
+                <AttendanceSummary event={event} />
+
+                {onAttendanceChange && (
+                    <AttendanceButtons event={event} onChange={onAttendanceChange} size="sm" />
+                )}
 
                 {event.description && (
                     <p className="text-sm text-content whitespace-pre-line break-words">

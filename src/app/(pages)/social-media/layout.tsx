@@ -5,6 +5,7 @@ import { createContext, useEffect, useState } from "react";
 import Header from "../../../../components/header";
 import BottomMenu from "../../../../components/bottom-menu";
 import Messages from "../../../../components/messages";
+import { RealtimeProvider } from "../../../../providers/realtime-provider";
 
 /**
  * Espelha App\Http\Resources\UserResource (GET /social-media/user).
@@ -62,6 +63,9 @@ export default function RootLayout({
 
   return (
     <AppContext.Provider value={{ myInfo, setMyInfo, openMessages, setOpenMessages }}>
+      {/* A conexão vive acima do painel: ela precisa continuar de pé com a
+          gaveta fechada, senão o contador de não lidas do Header congela. */}
+      <RealtimeProvider>
       <Header />
 
       <div className="min-h-screen bg-canvas text-content">
@@ -81,6 +85,7 @@ export default function RootLayout({
       </div>
 
       <BottomMenu />
+      </RealtimeProvider>
     </AppContext.Provider>
   );
 }

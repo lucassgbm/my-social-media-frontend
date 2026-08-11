@@ -74,6 +74,9 @@ export type CommunityPhoto = {
     can_delete: boolean;
 };
 
+/** Resposta de presença. Sem resposta é a ausência de status, não um valor. */
+export type AttendanceStatus = "going" | "maybe" | "declined";
+
 export type CommunityEvent = {
     id: number;
     title: string;
@@ -90,6 +93,43 @@ export type CommunityEvent = {
     community?: CommunityBrief | null;
     /** Já terminou — o corte é por `date_end`. */
     is_past?: boolean;
+
+    // --- Presença --------------------------------------------------------
+    going_count?: number | null;
+    maybe_count?: number | null;
+    /** Resposta de quem está vendo; null quando ainda não respondeu. */
+    viewer_attendance?: AttendanceStatus | null;
+    /** Participa da comunidade e o evento ainda não terminou. */
+    can_attend?: boolean;
+};
+
+/** Pessoa na lista de presença, com a resposta que ela deu. */
+export type EventAttendee = Person & {
+    attendance_status: AttendanceStatus;
+};
+
+/** Situação de um amigo perante a comunidade, na tela de convite. */
+export type InviteStatus = "none" | "invited" | "member" | "blocked";
+
+export type InviteCandidate = Person & {
+    invite_status: InviteStatus;
+};
+
+/** Convite de comunidade recebido, à espera de resposta. */
+export type CommunityInvite = {
+    id: number;
+    created_at: string;
+    community: {
+        id: number;
+        name: string;
+        description?: string | null;
+        photo?: string | null;
+    };
+    inviter?: {
+        id: number;
+        name: string;
+        photo?: string | null;
+    } | null;
 };
 
 /** Filtros da agenda pessoal (/social-media/events). */

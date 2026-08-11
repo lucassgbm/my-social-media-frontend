@@ -1,6 +1,7 @@
 'use client';
 
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import Image from "./remote-image";
 import Button from "./button";
 import ColorButton from "./color-button";
@@ -14,14 +15,13 @@ import MessageIcon from "./icons/message";
 import SearchIcon from "./icons/search";
 import UsersIcon from "./icons/users";
 import { AppContext } from "@/app/(pages)/social-media/layout";
+import { useRealtime } from "../providers/realtime-provider";
+import { useToaster } from "../providers/toaster-provider";
 import {
-    mockConversations,
-    mockNotifications,
-    type AppNotification,
+    formatMessageTime,
     type ChatMessage,
-    type Conversation,
     type NotificationType,
-} from "../mocks/messages";
+} from "../utils/realtime";
 
 type MessagesProps = {
     openMessages?: boolean;
@@ -43,34 +43,51 @@ const NOTIFICATION_STYLES: Record<
     comment: { icon: MessageIcon, className: "bg-sky-500/10 text-sky-500" },
     friend: { icon: UsersIcon, className: "bg-brand/10 text-brand" },
     community: { icon: CommunityIcon, className: "bg-amber-500/10 text-amber-500" },
+    // mensagem só vira notificação para quem está offline; quem está com o
+    // painel aberto já recebeu a mensagem pelo socket
+    message: { icon: MessageIcon, className: "bg-violet-500/10 text-violet-500" },
 };
-
-/** Horário da mensagem recém-enviada, no mesmo formato dos mocks (HH:MM). */
-function nowLabel(): string {
-    return new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-}
 
 /**
  * Painel lateral de mensagens e notificações, aberto pelo ícone do Header.
  *
- * Não há endpoint de chat na API: as conversas vêm de mocks/messages e o envio
- * só acrescenta a mensagem ao estado local. Toda a interação (busca, seleção,
- * não lidas, envio) é real para que trocar o mock pela API seja só substituir a
- * origem dos dados.
+ * Os dados vêm do serviço de tempo real (projeto `realtime/`) através do
+ * RealtimeProvider: histórico por HTTP ao abrir, e mensagem, presença e
+ * notificação por WebSocket depois. Antes tudo isto vinha de mocks/messages e
+ * o envio só mexia no estado local.
  */
 export default function Messages({ setOpenMessages }: MessagesProps) {
     const { myInfo } = useContext(AppContext);
+    const { showToast } = useToaster();
+
+    const {
+        conversations,
+        notifications,
+        threads,
+        typingIn,
+        unreadMessages,
+        unreadNotifications,
+        loading,
+        connected,
+        openConversation,
+        closeConversation,
+        sendMessage,
+        setTyping,
+        markNotificationsRead,
+    } = useRealtime();
 
     const [tab, setTab] = useState<Tab>("messages");
-    const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
-    const [notifications, setNotifications] = useState<AppNotification[]>(mockNotifications);
 
-    const [activeId, setActiveId] = useState<number | null>(mockConversations[0]?.id ?? null);
+    const [activeId, setActiveId] = useState<number | null>(null);
     // Abaixo de sm as duas colunas não cabem: a lista e a conversa se alternam
     const [showThreadOnMobile, setShowThreadOnMobile] = useState(false);
 
     const [search, setSearch] = useState("");
     const [draft, setDraft] = useState("");
+    const [sending, setSending] = useState(false);
+
+    /** Para de anunciar "digitando" sozinho — sem isto, ficaria preso ligado. */
+    const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const panelRef = useRef<HTMLElement>(null);
     const threadEndRef = useRef<HTMLDivElement>(null);
@@ -95,8 +112,14 @@ export default function Messages({ setOpenMessages }: MessagesProps) {
         return () => {
             document.removeEventListener("keydown", handleKeyDown);
             previouslyFocused.current?.focus();
+
+            // com a gaveta fechada não há conversa em foco: sem isto a última
+            // aberta seguiria marcando como lida o que chegasse nela
+            closeConversation();
+
+            if (typingTimeout.current) clearTimeout(typingTimeout.current);
         };
-    }, [setOpenMessages]);
+    }, [setOpenMessages, closeConversation]);
 
     // No mobile o painel cobre a tela inteira, então travar o scroll do body
     // evita rolar a página por baixo. No desktop ele é uma gaveta lateral e a
@@ -118,67 +141,85 @@ export default function Messages({ setOpenMessages }: MessagesProps) {
         [conversations, activeId]
     );
 
+    const thread = activeId === null ? [] : threads[activeId] ?? [];
+
     // Rola para a última mensagem ao abrir a conversa e a cada envio
     useEffect(() => {
         threadEndRef.current?.scrollIntoView({ block: "end" });
-    }, [activeId, active?.messages.length, tab]);
+    }, [activeId, thread.length, tab]);
+
+    // Abre a primeira conversa assim que a lista chega, como fazia com o mock
+    useEffect(() => {
+        if (activeId !== null || conversations.length === 0) return;
+
+        const first = conversations[0];
+
+        setActiveId(first.id);
+        void openConversation(first.id);
+    }, [conversations, activeId, openConversation]);
 
     const filtered = useMemo(() => {
         const term = search.trim().toLowerCase();
         if (term === "") return conversations;
 
         return conversations.filter((conversation) => {
-            const last = conversation.messages[conversation.messages.length - 1]?.text ?? "";
+            const last = conversation.last_message?.body ?? "";
 
             return (
-                conversation.name.toLowerCase().includes(term) ||
+                conversation.participant.name.toLowerCase().includes(term) ||
                 last.toLowerCase().includes(term)
             );
         });
     }, [conversations, search]);
 
-    const unreadMessages = conversations.reduce((total, item) => total + item.unread, 0);
-    const unreadNotifications = notifications.filter((item) => !item.read).length;
-
     function selectConversation(id: number) {
         setActiveId(id);
         setShowThreadOnMobile(true);
 
-        // abrir a conversa é o que marca como lida
-        setConversations((current) =>
-            current.map((conversation) =>
-                conversation.id === id ? { ...conversation, unread: 0 } : conversation
-            )
-        );
+        // abrir a conversa é o que marca como lida, aqui e no servidor
+        void openConversation(id);
     }
 
-    function sendMessage(e: React.FormEvent) {
+    /**
+     * Avisa que está digitando, no máximo uma vez a cada tecla, e desliga
+     * sozinho depois de 2s de silêncio.
+     */
+    function handleDraftChange(value: string) {
+        setDraft(value);
+
+        if (activeId === null) return;
+
+        setTyping(activeId, value !== "");
+
+        if (typingTimeout.current) clearTimeout(typingTimeout.current);
+
+        typingTimeout.current = setTimeout(() => {
+            setTyping(activeId, false);
+        }, 2000);
+    }
+
+    async function handleSend(e: React.FormEvent) {
         e.preventDefault();
 
         const text = draft.trim();
-        if (text === "" || !active) return;
+        if (text === "" || !active || sending) return;
 
-        setConversations((current) =>
-            current.map((conversation) =>
-                conversation.id !== active.id
-                    ? conversation
-                    : {
-                        ...conversation,
-                        // sem API ainda: a mensagem só entra no estado local
-                        messages: [
-                            ...conversation.messages,
-                            {
-                                id: (conversation.messages.at(-1)?.id ?? 0) + 1,
-                                mine: true,
-                                text,
-                                time: nowLabel(),
-                            },
-                        ],
-                    }
-            )
-        );
+        setSending(true);
 
+        // limpa antes do ack: a mensagem volta pelo socket e entra na thread,
+        // e segurar o campo até a resposta trava a digitação
         setDraft("");
+        setTyping(active.id, false);
+
+        const result = await sendMessage(active.participant.id, text);
+
+        setSending(false);
+
+        if (!result.ok) {
+            // devolve o texto para não perder o que a pessoa escreveu
+            setDraft(text);
+            showToast({ title: "Mensagens", message: result.error, status: "error" });
+        }
     }
 
     const tabClass = (isActive: boolean) =>
@@ -303,9 +344,10 @@ export default function Messages({ setOpenMessages }: MessagesProps) {
 
                             <ul className="scrollbar-slim flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-3">
                                 {filtered.map((conversation) => {
-                                    const last = conversation.messages.at(-1);
+                                    const last = conversation.last_message;
                                     const isActive = conversation.id === activeId;
                                     const hasUnread = conversation.unread > 0;
+                                    const lastIsMine = last?.sender_id === myInfo?.id;
 
                                     return (
                                         <li key={conversation.id}>
@@ -329,7 +371,7 @@ export default function Messages({ setOpenMessages }: MessagesProps) {
 
                                                 <span className="relative shrink-0">
                                                     <Image
-                                                        src={conversation.photo_path}
+                                                        src={conversation.participant.photo || "/imgs/placeholder.png"}
                                                         alt=""
                                                         width={44}
                                                         height={44}
@@ -349,12 +391,12 @@ export default function Messages({ setOpenMessages }: MessagesProps) {
                                                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                                                     <span className="flex flex-row items-baseline justify-between gap-2">
                                                         <span className="truncate text-sm font-semibold">
-                                                            {conversation.name}
+                                                            {conversation.participant.name}
                                                         </span>
                                                         <span
                                                             className={`shrink-0 text-[11px] ${hasUnread ? "font-semibold text-brand" : "text-content-muted"}`}
                                                         >
-                                                            {last?.time}
+                                                            {last ? formatMessageTime(last.created_at) : ""}
                                                         </span>
                                                     </span>
 
@@ -362,8 +404,8 @@ export default function Messages({ setOpenMessages }: MessagesProps) {
                                                         <span
                                                             className={`truncate text-xs ${hasUnread ? "font-medium text-content" : "text-content-muted"}`}
                                                         >
-                                                            {last?.mine ? "Você: " : ""}
-                                                            {last?.text}
+                                                            {lastIsMine ? "Você: " : ""}
+                                                            {last?.body ?? "Nenhuma mensagem ainda"}
                                                         </span>
                                                         {hasUnread && (
                                                             <span className="shrink-0 rounded-full bg-brand px-1.5 text-[10px]
@@ -378,14 +420,28 @@ export default function Messages({ setOpenMessages }: MessagesProps) {
                                     );
                                 })}
 
-                                {filtered.length === 0 && (
+                                {!loading && filtered.length === 0 && (
                                     <li className="flex flex-col items-center gap-2 px-2 py-10 text-center">
                                         <span className="rounded-full bg-surface-2 p-3">
                                             <SearchIcon className="size-6 text-content-subtle" />
                                         </span>
                                         <p className="text-sm text-content-muted">
-                                            Nenhuma conversa encontrada.
+                                            {conversations.length === 0
+                                                ? "Nenhuma conversa ainda. Abra o perfil de um amigo para começar."
+                                                : "Nenhuma conversa encontrada."}
                                         </p>
+                                    </li>
+                                )}
+
+                                {loading && (
+                                    <li className="flex flex-col gap-2 px-2 py-3">
+                                        {Array.from({ length: 4 }).map((_, index) => (
+                                            <span
+                                                key={index}
+                                                aria-hidden="true"
+                                                className="h-16 w-full animate-pulse rounded-card bg-surface-2"
+                                            />
+                                        ))}
                                     </li>
                                 )}
                             </ul>
@@ -409,7 +465,7 @@ export default function Messages({ setOpenMessages }: MessagesProps) {
 
                                         <span className="relative shrink-0">
                                             <Image
-                                                src={active.photo_path}
+                                                src={active.participant.photo || "/imgs/placeholder.png"}
                                                 alt=""
                                                 width={40}
                                                 height={40}
@@ -426,7 +482,9 @@ export default function Messages({ setOpenMessages }: MessagesProps) {
                                         </span>
 
                                         <div className="flex min-w-0 flex-col">
-                                            <h2 className="truncate text-base font-semibold">{active.name}</h2>
+                                            <h2 className="truncate text-base font-semibold">
+                                                {active.participant.name}
+                                            </h2>
                                             <span className="flex items-center gap-1.5 text-xs text-content-muted">
                                                 {active.online && (
                                                     <span
@@ -437,26 +495,42 @@ export default function Messages({ setOpenMessages }: MessagesProps) {
                                                 {active.online ? "Online agora" : "Offline"}
                                             </span>
                                         </div>
+
+                                        {/* sem socket a conversa vira só histórico: dizer
+                                            isso evita a impressão de mensagem entregue */}
+                                        {!connected && (
+                                            <span className="ml-auto shrink-0 rounded-full bg-surface-3 px-2 py-0.5
+                                                text-[11px] font-semibold text-content-muted">
+                                                Reconectando...
+                                            </span>
+                                        )}
                                     </div>
 
                                     {/* min-h-0 é o que permite a rolagem: sem isso o flex item
                                         cresce com o conteúdo e empurra o composer para fora */}
                                     <div className="scrollbar-slim flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4">
-                                        {active.messages.map((message, index) => (
+                                        {thread.length === 0 && (
+                                            <p className="m-auto max-w-xs text-center text-sm text-content-muted">
+                                                Nenhuma mensagem ainda. Diga oi para{" "}
+                                                {active.participant.name}.
+                                            </p>
+                                        )}
+
+                                        {thread.map((message, index) => (
                                             <MessageBubble
                                                 key={message.id}
                                                 message={message}
-                                                previous={active.messages[index - 1]}
-                                                next={active.messages[index + 1]}
-                                                authorName={active.name}
-                                                authorPhoto={active.photo_path}
+                                                previous={thread[index - 1]}
+                                                next={thread[index + 1]}
+                                                authorName={active.participant.name}
+                                                authorPhoto={active.participant.photo || "/imgs/placeholder.png"}
                                             />
                                         ))}
 
-                                        {active.typing && (
+                                        {typingIn[active.id] && (
                                             <div className="mt-3 flex flex-row items-end gap-2">
                                                 <Image
-                                                    src={active.photo_path}
+                                                    src={active.participant.photo || "/imgs/placeholder.png"}
                                                     alt=""
                                                     width={28}
                                                     height={28}
@@ -466,7 +540,7 @@ export default function Messages({ setOpenMessages }: MessagesProps) {
                                                 <div
                                                     className="flex items-center gap-1 rounded-2xl rounded-bl-md border border-line
                                                         bg-surface px-3 py-2.5"
-                                                    aria-label={`${active.name} está digitando`}
+                                                    aria-label={`${active.participant.name} está digitando`}
                                                 >
                                                     {[0, 150, 300].map((delay) => (
                                                         <span
@@ -484,17 +558,17 @@ export default function Messages({ setOpenMessages }: MessagesProps) {
 
                                     {/* <form> para o Enter enviar sem precisar de handler de tecla */}
                                     <form
-                                        onSubmit={sendMessage}
+                                        onSubmit={handleSend}
                                         className="flex flex-row items-center gap-2 border-t border-line bg-surface px-4 py-3"
                                     >
                                         <div className="flex w-full items-center rounded-full border border-line bg-surface-2 px-4 py-2.5
                                             focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand-ring">
                                             <input
                                                 type="text"
-                                                aria-label={`Mensagem para ${active.name}`}
+                                                aria-label={`Mensagem para ${active.participant.name}`}
                                                 placeholder="Digite uma mensagem"
                                                 value={draft}
-                                                onChange={(e) => setDraft(e.target.value)}
+                                                onChange={(e) => handleDraftChange(e.target.value)}
                                                 className="w-full bg-transparent text-sm text-content
                                                     placeholder:text-content-subtle outline-none"
                                             />
@@ -504,7 +578,7 @@ export default function Messages({ setOpenMessages }: MessagesProps) {
                                             type="submit"
                                             // o botão chamava handlePost, que não existia:
                                             // qualquer clique quebrava com ReferenceError
-                                            disabled={draft.trim() === ""}
+                                            disabled={draft.trim() === "" || sending}
                                             aria-label="Enviar mensagem"
                                             className="size-10 shrink-0 shadow-sm transition-transform active:scale-95"
                                         >
@@ -538,11 +612,7 @@ export default function Messages({ setOpenMessages }: MessagesProps) {
                             {unreadNotifications > 0 && (
                                 <button
                                     type="button"
-                                    onClick={() =>
-                                        setNotifications((current) =>
-                                            current.map((item) => ({ ...item, read: true }))
-                                        )
-                                    }
+                                    onClick={() => void markNotificationsRead()}
                                     className="rounded-full px-3 py-1.5 text-xs font-semibold text-brand
                                         transition-colors cursor-pointer hover:bg-brand-subtle
                                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
@@ -554,14 +624,17 @@ export default function Messages({ setOpenMessages }: MessagesProps) {
 
                         <ul className="scrollbar-slim flex flex-1 flex-col gap-1 overflow-y-auto p-3">
                             {notifications.map((notification) => {
-                                const { icon: Icon, className } = NOTIFICATION_STYLES[notification.type];
+                                const { icon: Icon, className } =
+                                    NOTIFICATION_STYLES[notification.type] ?? NOTIFICATION_STYLES.comment;
+
+                                const unread = notification.read_at === null;
 
                                 return (
                                     <li
                                         key={notification.id}
                                         className={`relative flex flex-row items-start gap-3 rounded-card p-3
                                             transition-colors hover:bg-surface-2
-                                            ${notification.read ? "" : "bg-surface-2"}`}
+                                            ${unread ? "bg-surface-2" : ""}`}
                                     >
                                         <span className={`mt-0.5 shrink-0 rounded-full p-2.5 ${className}`}>
                                             <Icon className="size-4" />
@@ -569,15 +642,35 @@ export default function Messages({ setOpenMessages }: MessagesProps) {
 
                                         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                                             <p className="text-sm leading-snug">
-                                                <span className="font-semibold">{notification.actor}</span>{" "}
-                                                {notification.text}
+                                                {notification.actor && (
+                                                    <span className="font-semibold">
+                                                        {notification.actor.name}{" "}
+                                                    </span>
+                                                )}
+                                                {notification.body}
                                             </p>
                                             <span className="text-xs text-content-muted">
-                                                {notification.time}
+                                                {formatMessageTime(notification.created_at)}
                                             </span>
                                         </div>
 
-                                        {!notification.read && (
+                                        {/* o link cobre o card inteiro: o alvo já vem
+                                            pronto de quem emitiu a notificação */}
+                                        {notification.url && (
+                                            <Link
+                                                href={notification.url}
+                                                onClick={() => {
+                                                    void markNotificationsRead(notification.id);
+                                                    close();
+                                                }}
+                                                className="absolute inset-0 rounded-card
+                                                    focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-ring"
+                                            >
+                                                <span className="sr-only">Abrir</span>
+                                            </Link>
+                                        )}
+
+                                        {unread && (
                                             <span
                                                 aria-label="Não lida"
                                                 className="mt-2 size-2 shrink-0 rounded-full bg-brand"
@@ -661,14 +754,18 @@ function MessageBubble({
                         ? "bg-brand text-on-brand"
                         : "border border-line bg-surface text-content"}`}
             >
-                <p className="leading-relaxed">{message.text}</p>
+                <p className="leading-relaxed whitespace-pre-line">{message.body}</p>
 
                 {endsGroup && (
                     <span
-                        className={`mt-0.5 block text-right text-[10px] leading-none
+                        className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] leading-none
                             ${message.mine ? "opacity-70" : "text-content-subtle"}`}
                     >
-                        {message.time}
+                        {formatMessageTime(message.created_at)}
+                        {/* confirmação de leitura só faz sentido no que eu mandei */}
+                        {message.mine && message.read_at !== null && (
+                            <span aria-label="Lida">✓✓</span>
+                        )}
                     </span>
                 )}
             </div>
