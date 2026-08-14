@@ -22,6 +22,8 @@ export type Community = {
     description?: string | null;
     photo?: string | null;
     category_id?: number | null;
+    /** Privada: só entra quem recebe convite. */
+    is_private?: boolean;
     owner_id: number;
     owner?: Person | null;
     members?: CommunityMember[];
@@ -30,6 +32,22 @@ export type Community = {
     photos_count?: number;
     events_count?: number;
     viewer_role: CommunityRole;
+    /**
+     * Ainda não participa e pode entrar por conta própria — falso numa
+     * comunidade privada sem convite.
+     */
+    can_join?: boolean;
+    /**
+     * Pode ver tópicos, fotos, eventos e membros. Falso na privada para quem
+     * está de fora: a tela mostra o aviso de conteúdo restrito.
+     */
+    can_view_content?: boolean;
+    /** Privada, está de fora e ainda não pediu: cabe pedir para entrar. */
+    can_request_join?: boolean;
+    /** 'pending' enquanto o pedido espera resposta. */
+    viewer_join_request?: "pending" | null;
+    /** Pedidos à espera de aprovação — só chega para quem modera. */
+    join_requests_count?: number;
     can_manage: boolean;
     can_moderate: boolean;
     can_participate: boolean;
@@ -101,6 +119,9 @@ export type CommunityEvent = {
     viewer_attendance?: AttendanceStatus | null;
     /** Participa da comunidade e o evento ainda não terminou. */
     can_attend?: boolean;
+
+    /** Já está nos salvos de quem está vendo (/social-media/items-saved). */
+    viewer_saved?: boolean;
 };
 
 /** Pessoa na lista de presença, com a resposta que ela deu. */
@@ -113,6 +134,17 @@ export type InviteStatus = "none" | "invited" | "member" | "blocked";
 
 export type InviteCandidate = Person & {
     invite_status: InviteStatus;
+};
+
+/**
+ * Pedido de entrada numa comunidade privada, na fila de quem administra.
+ *
+ * É o caminho inverso do convite: aqui a iniciativa é de quem está de fora.
+ */
+export type CommunityJoinRequest = {
+    id: number;
+    created_at?: string | null;
+    user: Person;
 };
 
 /** Convite de comunidade recebido, à espera de resposta. */

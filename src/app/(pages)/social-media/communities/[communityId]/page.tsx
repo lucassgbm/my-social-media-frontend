@@ -18,6 +18,9 @@ import TopicModal from "../../../../../../components/communities/topic-modal";
 import PhotoModal from "../../../../../../components/communities/photo-modal";
 import EventModal from "../../../../../../components/communities/event-modal";
 import InviteFriendsModal from "../../../../../../components/communities/invite-friends-modal";
+import CommunityModal from "../../../../../../components/communities/community-modal";
+import JoinRequests from "../../../../../../components/communities/join-requests";
+import ActionMenu, { type ActionMenuItem } from "../../../../../../components/action-menu";
 import Skeleton from "../../../../../../components/skeleton";
 import PinIcon from "../../../../../../components/icons/pin";
 import TrophyIcon from "../../../../../../components/icons/trophy";
@@ -28,8 +31,12 @@ import PhotoIcon from "../../../../../../components/icons/photo";
 import PlusIcon from "../../../../../../components/icons/plus";
 import CheckIcon from "../../../../../../components/icons/check";
 import CloseIcon from "../../../../../../components/icons/close";
+import LockClosedIcon from "../../../../../../components/icons/lock-closed";
+import ClockIcon from "../../../../../../components/icons/clock";
+import PencilSquareIcon from "../../../../../../components/icons/pencil-square";
 import { get, post, remove } from "@/api/services/request";
 import { useToaster } from "../../../../../../providers/toaster-provider";
+import type { CommunityCategory } from "../../../../../../components/communities/community-modal";
 import {
     type Community,
     type CommunityEvent,
@@ -75,6 +82,10 @@ export default function CommunityPage() {
     const [photoModal, setPhotoModal] = useState(false);
     const [eventModal, setEventModal] = useState(false);
     const [inviteModal, setInviteModal] = useState(false);
+    const [editModal, setEditModal] = useState(false);
+    // as categorias só são buscadas quando o modal de edição abre pela primeira
+    // vez: a página não precisa delas para mais nada
+    const [categories, setCategories] = useState<CommunityCategory[]>([]);
     const [viewingEvent, setViewingEvent] = useState<CommunityEvent | null>(null);
     const [managing, setManaging] = useState<CommunityMember | null>(null);
 
@@ -89,10 +100,14 @@ export default function CommunityPage() {
                 status: "error",
             });
             setCommunity(null);
-            return;
+            return null;
         }
 
-        setCommunity(response.data as Community);
+        const loaded = response.data as Community;
+
+        setCommunity(loaded);
+
+        return loaded;
     }, [communityId, showToast]);
 
     useEffect(() => {
@@ -102,18 +117,32 @@ export default function CommunityPage() {
 
         setLoading(true);
 
-        Promise.all([
-            loadCommunity(),
-            get(`/social-media/community/${communityId}/topics`),
-            get(`/social-media/community/${communityId}/photos`),
-            get(`/social-media/community/${communityId}/events`),
-        ]).then(([, topicsResponse, photosResponse, eventsResponse]) => {
+        // o conteúdo é buscado depois da comunidade, e não junto: numa privada
+        // de que a pessoa não participa, a API recusa as quatro chamadas — e
+        // pedir para levar 403 seria pedir por nada
+        loadCommunity().then((loaded) => {
             if (!active) return;
 
-            setTopics(topicsResponse?.data ?? []);
-            setPhotos(photosResponse?.data ?? []);
-            setEvents(eventsResponse?.data ?? []);
-            setLoading(false);
+            if (!loaded?.can_view_content) {
+                setTopics([]);
+                setPhotos([]);
+                setEvents([]);
+                setLoading(false);
+                return;
+            }
+
+            Promise.all([
+                get(`/social-media/community/${communityId}/topics`),
+                get(`/social-media/community/${communityId}/photos`),
+                get(`/social-media/community/${communityId}/events`),
+            ]).then(([topicsResponse, photosResponse, eventsResponse]) => {
+                if (!active) return;
+
+                setTopics(topicsResponse?.data ?? []);
+                setPhotos(photosResponse?.data ?? []);
+                setEvents(eventsResponse?.data ?? []);
+                setLoading(false);
+            });
         });
 
         return () => {
@@ -126,6 +155,41 @@ export default function CommunityPage() {
         : false;
     const isBlocked = community?.viewer_role === "blocked";
     const canManage = !!community?.can_manage;
+    /** Privada e sem convite: a API recusaria a entrada, então nem o botão aparece. */
+    const needsInvite = !isMember && !!community?.is_private && !community?.can_join;
+    /** Conteúdo restrito: privada e o visitante está de fora. */
+    const contentLocked = community !== null && !community.can_view_content;
+    const requestPending = community?.viewer_join_request === "pending";
+    /** A contagem só vem para quem modera; para o resto é 0 e o badge some. */
+    const pendingRequests = community?.join_requests_count ?? 0;
+
+    /**
+     * O que fica atrás dos três pontinhos. Convidar é de quem participa (não só
+     * de quem administra: é o que faz a comunidade crescer); editar é de quem
+     * administra. Sem nenhum dos dois o menu não é renderizado.
+     */
+    const secondaryActions: ActionMenuItem[] = [
+        ...(isMember
+            ? [{
+                label: "Convidar amigos",
+                icon: UsersIcon,
+                onClick: () => setInviteModal(true),
+            }]
+            : []),
+        ...(canManage
+            ? [{
+                label: "Editar comunidade",
+                icon: PencilSquareIcon,
+                onClick: () => setEditModal(true),
+            }]
+            : []),
+    ];
+
+    useEffect(() => {
+        if (!editModal || categories.length > 0) return;
+
+        get("/category").then((response) => setCategories(response?.data ?? []));
+    }, [editModal, categories.length]);
 
     async function handleJoin() {
         setJoining(true);
@@ -154,6 +218,36 @@ export default function CommunityPage() {
         });
 
         // papel, permissões e contagem de membros mudam de uma vez
+        loadCommunity();
+    }
+
+    /** Pedir para entrar numa privada — quem administra aprova ou recusa. */
+    async function handleRequestJoin() {
+        setJoining(true);
+
+        const response = await post(
+            `/social-media/community/${communityId}/join-requests`,
+            {}
+        );
+
+        setJoining(false);
+
+        if (!response) {
+            showToast({
+                title: "Comunidade",
+                message: "Não foi possível enviar o seu pedido.",
+                status: "error",
+            });
+            return;
+        }
+
+        showToast({
+            title: "Comunidade",
+            message: response.message ?? "Pedido enviado!",
+            status: "success",
+        });
+
+        // o botão passa a mostrar o pedido pendente
         loadCommunity();
     }
 
@@ -274,13 +368,39 @@ export default function CommunityPage() {
                                     )}
                                 </div>
 
-                                <div className="flex w-full flex-row items-center gap-2 sm:w-auto sm:pb-2">
-                                    {isBlocked ? (
+                                <div className="flex w-full flex-row flex-wrap items-center justify-end gap-2
+                                    sm:w-auto sm:pb-2">
+                                    {isBlocked && (
                                         <span className="flex-1 sm:flex-none rounded-full bg-danger px-4 py-2
                                             text-sm font-semibold text-white text-center">
                                             Você foi bloqueado
                                         </span>
-                                    ) : (
+                                    )}
+
+                                    {/* privada e sem convite: em vez do botão de
+                                        entrar, o de pedir — e depois de pedir, o
+                                        estado do pedido */}
+                                    {!isBlocked && needsInvite && requestPending && (
+                                        <span className="flex flex-1 flex-row items-center justify-center gap-2
+                                            rounded-full bg-surface-3 px-4 py-2 text-sm font-semibold
+                                            text-content-muted sm:flex-none">
+                                            <ClockIcon className="size-4 shrink-0" />
+                                            Pedido enviado
+                                        </span>
+                                    )}
+
+                                    {!isBlocked && needsInvite && !requestPending && (
+                                        <ColorButton
+                                            onClick={handleRequestJoin}
+                                            disabled={joining || loading}
+                                            className="flex-1 sm:flex-none px-4 text-sm font-semibold"
+                                        >
+                                            <LockClosedIcon className="size-4 shrink-0" />
+                                            Pedir para entrar
+                                        </ColorButton>
+                                    )}
+
+                                    {!isBlocked && !needsInvite && (
                                         <ColorButton
                                             onClick={handleJoin}
                                             disabled={joining || loading}
@@ -296,20 +416,6 @@ export default function CommunityPage() {
                                         </ColorButton>
                                     )}
 
-                                    {/* convidar é de quem participa, não só de quem
-                                        administra: é o que faz a comunidade crescer */}
-                                    {isMember && (
-                                        <Button
-                                            variant="outline"
-                                            size="md"
-                                            className="shrink-0 font-semibold"
-                                            onClick={() => setInviteModal(true)}
-                                        >
-                                            <UsersIcon className="size-4 shrink-0" />
-                                            <span className="hidden sm:inline">Convidar amigos</span>
-                                        </Button>
-                                    )}
-
                                     {canManage && (
                                         <Button
                                             variant="outline"
@@ -321,6 +427,11 @@ export default function CommunityPage() {
                                             <span className="hidden sm:inline">Novo evento</span>
                                         </Button>
                                     )}
+
+                                    {/* convidar e editar saíram da barra: com quatro
+                                        botões o último ficava cortado na largura do
+                                        cabeçalho */}
+                                    <ActionMenu items={secondaryActions} label="Mais ações da comunidade" />
                                 </div>
                             </div>
 
@@ -332,9 +443,23 @@ export default function CommunityPage() {
                                     </>
                                 ) : (
                                     <>
-                                        <h1 className="text-2xl font-semibold">
-                                            {community?.name ?? "Comunidade não encontrada"}
-                                        </h1>
+                                        <div className="flex flex-row flex-wrap items-center gap-2">
+                                            <h1 className="text-2xl font-semibold">
+                                                {community?.name ?? "Comunidade não encontrada"}
+                                            </h1>
+
+                                            {/* o selo é o que explica, para quem
+                                                chega de fora, por que não há
+                                                botão de participar */}
+                                            {community?.is_private && (
+                                                <span className="flex flex-row items-center gap-1 rounded-full
+                                                    bg-surface-3 px-2 py-0.5 text-[11px] font-semibold
+                                                    text-content-muted">
+                                                    <LockClosedIcon className="size-3 shrink-0" />
+                                                    Privada
+                                                </span>
+                                            )}
+                                        </div>
 
                                         {community?.owner && (
                                             <div className="flex flex-row items-center gap-1 text-content-muted">
@@ -380,7 +505,35 @@ export default function CommunityPage() {
                         </div>
                     </Container>
 
+                    {/* --- Conteúdo restrito: privada e o visitante está de fora --- */}
+                    {contentLocked && (
+                        <Container className="rounded-card" padding="p-4" as="section">
+                            <div className="flex flex-col items-center gap-3 py-12 text-center">
+                                <span className="flex size-16 items-center justify-center rounded-full
+                                    bg-surface-3 text-content-muted">
+                                    <LockClosedIcon className="size-8" />
+                                </span>
+
+                                <h2 className="text-base font-semibold">Conteúdo restrito</h2>
+
+                                <p className="max-w-sm text-sm text-content-muted">
+                                    Tópicos, fotos, eventos e a lista de membros desta comunidade são
+                                    só para quem participa.
+                                </p>
+
+                                <p className="max-w-sm text-sm text-content-muted">
+                                    {requestPending
+                                        ? "Seu pedido está esperando resposta de quem administra."
+                                        : isBlocked
+                                            ? "Você foi bloqueado nesta comunidade."
+                                            : "Peça para entrar ou espere um convite de quem já participa."}
+                                </p>
+                            </div>
+                        </Container>
+                    )}
+
                     {/* --- Abas --- */}
+                    {!contentLocked && (
                     <Container className="rounded-card" padding="p-0" as="section">
                         <div
                             role="tablist"
@@ -398,6 +551,15 @@ export default function CommunityPage() {
                                 >
                                     <Icon className="size-4 shrink-0" />
                                     {label}
+
+                                    {/* quem modera precisa saber que há gente
+                                        esperando sem abrir a aba */}
+                                    {id === "members" && pendingRequests > 0 && (
+                                        <span className="rounded-full bg-brand px-1.5 text-[11px] font-semibold
+                                            text-on-brand">
+                                            {pendingRequests}
+                                        </span>
+                                    )}
                                 </button>
                             ))}
                         </div>
@@ -545,7 +707,17 @@ export default function CommunityPage() {
                             )}
 
                             {tab === "members" && (
-                                members.length > 0 ? (
+                                <>
+                                {/* a fila fica junto dos membros: é ali que se
+                                    decide quem participa */}
+                                {community?.can_moderate && (
+                                    <JoinRequests
+                                        communityId={communityId}
+                                        onAnswered={() => loadCommunity()}
+                                    />
+                                )}
+
+                                {members.length > 0 ? (
                                     <div className={PHOTO_GRID}>
                                         {members.map((member) => (
                                             <MemberCard
@@ -563,13 +735,16 @@ export default function CommunityPage() {
                                             Quem entrar na comunidade aparece aqui.
                                         </p>
                                     </div>
-                                )
+                                )}
+                                </>
                             )}
                         </div>
                     </Container>
+                    )}
                 </div>
 
                 <aside aria-label="Informações da comunidade" className="w-full xl:w-[340px] xl:shrink-0 flex flex-col gap-4">
+                    {!contentLocked && (
                     <Container className="rounded-card" padding="p-4">
                         <div className="flex flex-row items-center justify-between mb-4">
                             <h2 className="text-lg font-semibold">Próximos eventos</h2>
@@ -595,6 +770,7 @@ export default function CommunityPage() {
                             </div>
                         )}
                     </Container>
+                    )}
 
                     <Container className="rounded-card" padding="p-4">
                         <div className="flex flex-row items-center justify-between mb-4">
@@ -658,6 +834,17 @@ export default function CommunityPage() {
                 event={viewingEvent}
                 onDelete={handleDeleteEvent}
                 onAttendanceChange={handleAttendanceChange}
+            />
+
+            <CommunityModal
+                isOpen={editModal}
+                onClose={() => setEditModal(false)}
+                categories={categories}
+                community={community}
+                // recarrega em vez de usar a resposta: o update não devolve
+                // membros nem dono (o show devolve), e a aba de membros
+                // esvaziaria até alguém atualizar a página
+                onSaved={() => loadCommunity()}
             />
 
             <InviteFriendsModal

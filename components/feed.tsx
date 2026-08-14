@@ -9,6 +9,7 @@ import AirPlaneIcon from "./icons/airplane";
 import ColorButton from "./color-button";
 import LoadingSpinner from "./loading-spinner";
 import Modal from "./modal";
+import SaveButton from "./saved/save-button";
 import { useToaster } from "../providers/toaster-provider";
 import { post as sendRequest } from "@/api/services/request";
 
@@ -47,13 +48,21 @@ interface Post {
   user: User;
   likes: Likes;
   comments: Comments;
+  /** Já está nos salvos de quem está vendo. */
+  viewer_saved?: boolean;
 }
 
 interface FeedProps {
   feed: Post[];
+  /**
+   * Avisa que o post entrou ou saiu dos salvos. A lista de salvos usa para
+   * tirar da tela o que acabou de sair dela.
+   */
+  onSavedChange?: (postId: number, saved: boolean) => void;
 }
 
-const actionButtonClass = `flex w-1/3 flex-row items-center justify-center gap-1 rounded-field py-2
+/** flex-1: os botões dividem a barra por igual, sejam três ou quatro. */
+const actionButtonClass = `flex flex-1 flex-row items-center justify-center gap-1 rounded-field py-2
   text-content-muted hover:bg-surface-2 hover:text-content transition-colors cursor-pointer
   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring`;
 
@@ -73,7 +82,7 @@ const modalAvatarClass = "w-10 aspect-square rounded-full object-cover shrink-0"
  */
 const POST_IMAGE_HEIGHT = "h-[280px]";
 
-export default function Feed({ feed }: FeedProps) {
+export default function Feed({ feed, onSavedChange }: FeedProps) {
   const { showToast } = useToaster();
 
   const [modalPost, setModalPost] = useState(false);
@@ -227,6 +236,13 @@ export default function Feed({ feed }: FeedProps) {
               <button type="button" className={actionButtonClass} aria-label="Compartilhar">
                 <AirPlaneIcon className="size-5" />
               </button>
+              <SaveButton
+                type="post"
+                itemId={post.id}
+                saved={post.viewer_saved}
+                onChange={(saved) => onSavedChange?.(post.id, saved)}
+                className={actionButtonClass}
+              />
             </div>
           </Container>
         );

@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useContext, useEffect, useState } from "react";
-import { AppContext } from "@/app/(pages)/social-media/layout";
+import { useCallback, useEffect, useState } from "react";
+import { useMyInfo } from "../../stores/use-session-store";
 import { get, post, remove } from "@/api/services/request";
 import { useToaster } from "../../providers/toaster-provider";
 import StoriesBar from "./stories-bar";
@@ -17,7 +17,7 @@ import { markStorySeen, removeStory, type StoryGroup } from "../../utils/story";
  * de dezenas de pessoas fictícias escrito à mão e nenhuma chamada à API.
  */
 export default function Stories() {
-    const { myInfo } = useContext(AppContext);
+    const myInfo = useMyInfo();
     const { showToast } = useToaster();
 
     const [groups, setGroups] = useState<StoryGroup[]>([]);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "../remote-image";
 import Container from "../container";
@@ -30,42 +30,17 @@ import UsersIcon from "../icons/users";
 import CommunityIcon from "../icons/community";
 import CommunityCard from "../communities/community-card";
 import CommunitySuggestions from "../communities/community-suggestions";
-import { get, postFormData } from "@/api/services/request";
+import {
+    isNotFound,
+    useProfile,
+    useUploadUserPhoto,
+    useUserPhotos,
+    useUserPosts,
+} from "../../hooks/use-profile";
 import { useToaster } from "../../providers/toaster-provider";
-import { locationOf, type FriendshipStatus, type Person } from "../../utils/friendship";
-import type { Community } from "../../utils/community";
-
-interface UserPhoto {
-    id: number;
-    photo_path: string;
-    created_at: string;
-}
-
-interface PostAuthor {
-    name: string;
-    photo?: string | null;
-}
-
-interface Post {
-    id: number;
-    description: string;
-    photo_path?: string | null;
-    created_at: string;
-    user: PostAuthor;
-    likes: { count: number };
-    comments: { count: number };
-}
-
-/** Espelha App\Http\Resources\PublicProfileResource. */
-type PublicProfile = Person & {
-    cover?: string | null;
-    friendship_status: FriendshipStatus;
-    friends_count: number;
-    photos_count: number;
-    communities_count: number;
-    friends: Person[];
-    communities: Community[];
-};
+import { errorMessage } from "../../utils/api-error";
+import { locationOf } from "../../utils/friendship";
+import type { ProfilePost, UserPhoto } from "../../utils/profile";
 
 type Tab = "friends" | "photos" | "communities";
 
@@ -76,6 +51,15 @@ const TABS: { id: Tab; label: string; icon: typeof UsersIcon }[] = [
 ];
 
 const DEFAULT_COVER = "/imgs/placeholder.png";
+
+/**
+ * Listas vazias com identidade fixa, para o intervalo antes da resposta.
+ *
+ * Um `[]` novo a cada render faria o efeito do carrossel de posts recalcular os
+ * botões de rolagem sem parar.
+ */
+const NO_PHOTOS: UserPhoto[] = [];
+const NO_POSTS: ProfilePost[] = [];
 
 /**
  * Tela de perfil compartilhada por /social-media/user/[userId],
@@ -89,23 +73,27 @@ const DEFAULT_COVER = "/imgs/placeholder.png";
 export default function UserProfile({ identifier }: { identifier: string }) {
     const { showToast } = useToaster();
 
-    const [profile, setProfile] = useState<PublicProfile | null>(null);
-    const [loadingProfile, setLoadingProfile] = useState(true);
-    const [notFound, setNotFound] = useState(false);
-
     const [tab, setTab] = useState<Tab>("friends");
 
-    const [userPosts, setUserPosts] = useState<Post[]>([]);
-    const [loadingPosts, setLoadingPosts] = useState(true);
+    const profileQuery = useProfile(identifier);
 
-    const [userPhotos, setUserPhotos] = useState<UserPhoto[]>([]);
-    const [loadingPhotos, setLoadingPhotos] = useState(true);
+    const profile = profileQuery.data ?? null;
+    const loadingProfile = profileQuery.isPending;
+    /** 404 da API: esta pessoa não existe. */
+    const notFound = profileQuery.isError && isNotFound(profileQuery.error);
+    /** Erro que não é 404: rede fora, servidor de pé errado, 500. */
+    const profileFailed = profileQuery.isError && !notFound;
+
+    // Capa e avatar vêm do R2 e chegam depois do resto do cabeçalho: sem isso o
+    // skeleton saía junto com a resposta da API e sobrava um buraco na tela até
+    // a imagem baixar. `false` também no erro evita skeleton eterno.
+    const [coverLoaded, setCoverLoaded] = useState(false);
+    const [photoLoaded, setPhotoLoaded] = useState(false);
 
     const [modalNewPhoto, setModalNewPhoto] = useState(false);
     const [newPhoto, setNewPhoto] = useState<{ photo_path: File | string | null }>({
         photo_path: null,
     });
-    const [loadingSendPhoto, setLoadingSendPhoto] = useState(false);
     const [preview, setPreview] = useState<string | null>(null);
 
     const inputRef = useRef<HTMLInputElement>(null);
@@ -118,60 +106,21 @@ export default function UserProfile({ identifier }: { identifier: string }) {
     const isOwnProfile = profile?.friendship_status === "self";
     const profileId = profile?.id;
 
-    useEffect(() => {
-        let active = true;
+    // fotos e posts esperam o perfil resolver de quem são: `enabled` segura as
+    // duas consultas enquanto `profileId` não existe
+    const photosQuery = useUserPhotos(profileId);
+    const postsQuery = useUserPosts(profileId);
 
-        setLoadingProfile(true);
-        setNotFound(false);
+    const userPhotos = photosQuery.data ?? NO_PHOTOS;
+    const userPosts = postsQuery.data ?? NO_POSTS;
 
-        get(`/social-media/users/${encodeURIComponent(identifier)}`).then((response) => {
-            if (!active) return;
+    // `isPending` de uma consulta desligada nunca vira false, então o esqueleto
+    // continua em pé no intervalo entre a montagem e a chegada do perfil
+    const loadingPhotos = photosQuery.isPending;
+    const loadingPosts = postsQuery.isPending;
 
-            // get() devolve undefined tanto no 404 quanto em falha de rede
-            if (!response?.data) setNotFound(true);
-            else setProfile(response.data as PublicProfile);
-
-            setLoadingProfile(false);
-        });
-
-        return () => {
-            active = false;
-        };
-    }, [identifier]);
-
-    const getUserPhotos = useCallback(async (userId: number) => {
-        setLoadingPhotos(true);
-
-        const response = await get(`/social-media/user-photos?user_id=${userId}`);
-
-        if (!response) {
-            showToast({ message: "Erro ao carregar fotos", status: "error", title: "Fotos" });
-        }
-
-        setUserPhotos(response?.data ?? []);
-        setLoadingPhotos(false);
-    }, [showToast]);
-
-    const getUserPosts = useCallback(async (userId: number) => {
-        setLoadingPosts(true);
-
-        const response = await get(`/social-media/feed?user_id=${userId}`);
-
-        if (!response) {
-            showToast({ message: "Erro ao carregar posts", status: "error", title: "Posts" });
-        }
-
-        setUserPosts(response?.data ?? []);
-        setLoadingPosts(false);
-    }, [showToast]);
-
-    // fotos e posts dependem de saber de quem é o perfil
-    useEffect(() => {
-        if (!profileId) return;
-
-        getUserPhotos(profileId);
-        getUserPosts(profileId);
-    }, [profileId, getUserPhotos, getUserPosts]);
+    const uploadPhoto = useUploadUserPhoto(profileId);
+    const loadingSendPhoto = uploadPhoto.isPending;
 
     useEffect(() => {
         updateScrollButtons();
@@ -206,7 +155,18 @@ export default function UserProfile({ identifier }: { identifier: string }) {
         setPreview(URL.createObjectURL(file));
     };
 
-    async function handlePhoto(e: React.SyntheticEvent) {
+    /**
+     * Envia a foto.
+     *
+     * A mutação invalida o álbum e o perfil; o contador do cabeçalho e a grade
+     * de fotos se atualizam juntos, sem esta tela precisar saber quais telas
+     * dependem do quê.
+     *
+     * As contas de amizade também saíram daqui: `friends_count`,
+     * `friendship_status` e a grade da aba "Amigos" vêm do perfil revalidado
+     * pelas mutações de `use-friends`, em vez de somar e subtrair na mão.
+     */
+    function handlePhoto(e: React.SyntheticEvent) {
         e.preventDefault();
 
         if (newPhoto.photo_path === null) {
@@ -214,43 +174,25 @@ export default function UserProfile({ identifier }: { identifier: string }) {
             return;
         }
 
-        setLoadingSendPhoto(true);
-
-        const formData = new FormData();
-        formData.append("photo_path", newPhoto.photo_path);
-        formData.append("description", "");
-
-        try {
-            await postFormData("/social-media/user-photos", formData);
-            showToast({ message: "Foto enviada com sucesso!", status: "success", title: "Nova Foto" });
-            setNewPhoto({ photo_path: null });
-            setModalNewPhoto(false);
-            setPreview(null);
-            if (profileId) getUserPhotos(profileId);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (error: any) {
-            showToast({
-                message: "Erro ao enviar foto: " + (error?.response?.data?.message ?? ""),
-                status: "error",
-                title: "Nova Foto",
-            });
-        }
-
-        setLoadingSendPhoto(false);
-    }
-
-    /** O botão de amizade do cabeçalho também muda o contador de amigos. */
-    function handleFriendshipChange(_personId: number, status: FriendshipStatus) {
-        setProfile((current) =>
-            current
-                ? {
-                    ...current,
-                    friendship_status: status,
-                    friends_count:
-                        status === "friends" ? current.friends_count + 1 : current.friends_count,
-                }
-                : current
-        );
+        uploadPhoto.mutate(newPhoto.photo_path, {
+            onSuccess: () => {
+                showToast({
+                    message: "Foto enviada com sucesso!",
+                    status: "success",
+                    title: "Nova Foto",
+                });
+                setNewPhoto({ photo_path: null });
+                setModalNewPhoto(false);
+                setPreview(null);
+            },
+            onError: (error) => {
+                showToast({
+                    message: errorMessage(error, "Erro ao enviar foto."),
+                    status: "error",
+                    title: "Nova Foto",
+                });
+            },
+        });
     }
 
     const tabClass = (active: boolean) =>
@@ -266,7 +208,25 @@ export default function UserProfile({ identifier }: { identifier: string }) {
     const communities = profile?.communities ?? [];
     const photosCount = loadingPhotos ? (profile?.photos_count ?? 0) : userPhotos.length;
 
-    if (notFound) {
+    // trocar de perfil (ou salvar uma imagem nova) troca a URL: o skeleton
+    // volta em vez de manter a imagem anterior na tela
+    useEffect(() => {
+        setCoverLoaded(false);
+    }, [profileCover]);
+
+    useEffect(() => {
+        setPhotoLoaded(false);
+    }, [profilePhoto]);
+
+    // enquanto o perfil não chega, a URL ainda é o placeholder — mostrar o
+    // skeleton até os dois estarem prontos evita o flash da imagem padrão
+    const coverReady = !loadingProfile && coverLoaded;
+    const photoReady = !loadingProfile && photoLoaded;
+
+    // Perfil inexistente e servidor fora do ar levavam à mesma tela, porque o
+    // get() devolvia undefined nos dois casos. Agora o 404 é distinguível, e
+    // quem caiu por falha de rede tem o que tentar de novo.
+    if (notFound || profileFailed) {
         return (
             <>
                 <Sidebar />
@@ -275,18 +235,38 @@ export default function UserProfile({ identifier }: { identifier: string }) {
                     <Container className="rounded-card" padding="p-4" as="section">
                         <div className="flex flex-col items-center gap-3 py-16 text-center">
                             <UsersIcon className="size-10 text-content-subtle" />
-                            <h1 className="text-lg font-semibold">Perfil não encontrado</h1>
+
+                            <h1 className="text-lg font-semibold">
+                                {notFound
+                                    ? "Perfil não encontrado"
+                                    : "Não foi possível carregar o perfil"}
+                            </h1>
+
                             <p className="max-w-sm text-sm text-content-muted">
-                                Não existe ninguém com o identificador “{identifier}”.
+                                {notFound
+                                    ? `Não existe ninguém com o identificador “${identifier}”.`
+                                    : "A conexão com o servidor falhou."}
                             </p>
-                            <Link
-                                href="/social-media/friends"
-                                className="mt-2 rounded-field px-3 py-1 text-sm font-semibold text-brand
-                                    hover:bg-surface-2 transition-colors
-                                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
-                            >
-                                Ver pessoas
-                            </Link>
+
+                            {notFound ? (
+                                <Link
+                                    href="/social-media/friends"
+                                    className="mt-2 rounded-field px-3 py-1 text-sm font-semibold text-brand
+                                        hover:bg-surface-2 transition-colors
+                                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                                >
+                                    Ver pessoas
+                                </Link>
+                            ) : (
+                                <Button
+                                    variant="outline"
+                                    size="md"
+                                    className="mt-2 font-semibold"
+                                    onClick={() => profileQuery.refetch()}
+                                >
+                                    Tentar de novo
+                                </Button>
+                            )}
                         </div>
                     </Container>
                 </div>
@@ -315,15 +295,28 @@ export default function UserProfile({ identifier }: { identifier: string }) {
                     apoiado num espaçador vazio de 80px.
                 --------------------------------------------------------- */}
                 <Container className="rounded-card overflow-hidden" padding="p-0" as="section">
-                    <div className="relative h-36 sm:h-52 w-full">
+                    <div className="relative h-36 sm:h-52 w-full bg-surface-2">
                         <Image
                             src={profileCover}
                             alt=""
                             fill
-                            className="object-cover"
+                            className={`object-cover transition-opacity duration-300
+                                ${coverReady ? "opacity-100" : "opacity-0"}`}
                             sizes="(max-width: 1024px) 100vw, 800px"
                             priority
+                            onLoad={() => setCoverLoaded(true)}
+                            onError={() => setCoverLoaded(true)}
                         />
+
+                        {/* o skeleton cobre a faixa inteira: quem tem o recorte
+                            arredondado é o Container (overflow-hidden) */}
+                        {!coverReady && (
+                            <Skeleton
+                                className="absolute inset-0"
+                                height="h-full"
+                                rounded="none"
+                            />
+                        )}
 
                         {/* atalho para a edição da capa direto do perfil — o
                             fluxo de recorte e envio vive lá */}
@@ -348,18 +341,33 @@ export default function UserProfile({ identifier }: { identifier: string }) {
                         então a capa cobria o avatar mesmo vindo antes no DOM. */}
                     <div className="relative z-10 px-4 pb-4 sm:px-6">
                         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-                            <div className="-mt-14 sm:-mt-20">
-                                <RingImage className="w-[112px] sm:w-[150px]">
+                            {/* relative + largura fixa no wrapper para o skeleton
+                                sobrepor exatamente a área do avatar (anel
+                                incluído) sem mexer no espaço reservado */}
+                            <div className="relative w-[112px] sm:w-[150px] -mt-14 sm:-mt-20">
+                                <RingImage className="w-full">
                                     <Image
                                         src={profilePhoto}
                                         alt={`Foto de perfil de ${profileName}`}
                                         width={150}
                                         height={150}
                                         sizes="150px"
-                                        className="w-full aspect-square object-cover rounded-full"
+                                        className={`w-full aspect-square object-cover rounded-full
+                                            transition-opacity duration-300
+                                            ${photoReady ? "opacity-100" : "opacity-0"}`}
                                         priority
+                                        onLoad={() => setPhotoLoaded(true)}
+                                        onError={() => setPhotoLoaded(true)}
                                     />
                                 </RingImage>
+
+                                {!photoReady && (
+                                    <Skeleton
+                                        className="absolute inset-0"
+                                        height="h-full"
+                                        rounded="full"
+                                    />
+                                )}
                             </div>
 
                             {/* No mobile as ações ocupam a linha inteira; a partir
@@ -379,7 +387,6 @@ export default function UserProfile({ identifier }: { identifier: string }) {
                                                 person={profile}
                                                 size="md"
                                                 className="flex-1 sm:flex-none font-semibold"
-                                                onStatusChange={handleFriendshipChange}
                                             />
                                         )}
                                         <Button
@@ -552,15 +559,36 @@ export default function UserProfile({ identifier }: { identifier: string }) {
                                 )}
 
                                 {/* Antes a ausência de fotos renderizava skeletons para sempre */}
+                                {/* a falha virava um toast e uma galeria vazia, ou
+                                    seja, sumia da tela e parecia álbum sem fotos */}
                                 {!loadingPhotos && userPhotos.length === 0 && (
                                     <div className="flex flex-col items-center gap-3 py-12 text-center">
                                         <PhotoIcon className="size-10 text-content-subtle" />
-                                        <h3 className="text-base font-semibold">Nenhuma foto por aqui</h3>
+
+                                        <h3 className="text-base font-semibold">
+                                            {photosQuery.isError
+                                                ? "Não foi possível carregar as fotos"
+                                                : "Nenhuma foto por aqui"}
+                                        </h3>
+
                                         <p className="max-w-xs text-sm text-content-muted">
-                                            {isOwnProfile
-                                                ? "Adicione fotos para montar a sua galeria."
-                                                : `${profileName} ainda não publicou fotos.`}
+                                            {photosQuery.isError
+                                                ? "A conexão com o servidor falhou."
+                                                : isOwnProfile
+                                                    ? "Adicione fotos para montar a sua galeria."
+                                                    : `${profileName} ainda não publicou fotos.`}
                                         </p>
+
+                                        {photosQuery.isError && (
+                                            <Button
+                                                variant="outline"
+                                                size="md"
+                                                className="font-semibold"
+                                                onClick={() => photosQuery.refetch()}
+                                            >
+                                                Tentar de novo
+                                            </Button>
+                                        )}
                                     </div>
                                 )}
                             </>
@@ -689,12 +717,31 @@ export default function UserProfile({ identifier }: { identifier: string }) {
                     {!loadingPosts && userPosts.length === 0 && (
                         <div className="flex flex-col items-center gap-3 py-12 text-center">
                             <PencilSquareIcon className="size-10 text-content-subtle" />
-                            <h3 className="text-base font-semibold">Nenhum post ainda</h3>
+
+                            <h3 className="text-base font-semibold">
+                                {postsQuery.isError
+                                    ? "Não foi possível carregar os posts"
+                                    : "Nenhum post ainda"}
+                            </h3>
+
                             <p className="max-w-xs text-sm text-content-muted">
-                                {isOwnProfile
-                                    ? "As suas publicações aparecem aqui assim que forem criadas."
-                                    : `${profileName} ainda não publicou nada.`}
+                                {postsQuery.isError
+                                    ? "A conexão com o servidor falhou."
+                                    : isOwnProfile
+                                        ? "As suas publicações aparecem aqui assim que forem criadas."
+                                        : `${profileName} ainda não publicou nada.`}
                             </p>
+
+                            {postsQuery.isError && (
+                                <Button
+                                    variant="outline"
+                                    size="md"
+                                    className="font-semibold"
+                                    onClick={() => postsQuery.refetch()}
+                                >
+                                    Tentar de novo
+                                </Button>
+                            )}
                         </div>
                     )}
                 </Container>

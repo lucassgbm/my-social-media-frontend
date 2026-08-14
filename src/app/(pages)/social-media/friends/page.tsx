@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from "react";
-import { get, post } from "@/api/services/request";
+import { useMemo, useState } from "react";
 import Container from "../../../../../components/container";
 import Sidebar from "../../../../../components/sidebar";
 import PageHeader from "../../../../../components/page-header";
@@ -18,6 +17,12 @@ import Skeleton from "../../../../../components/skeleton";
 import UsersIcon from "../../../../../components/icons/users";
 import InboxIcon from "../../../../../components/icons/inbox";
 import { useToaster } from "../../../../../providers/toaster-provider";
+import {
+    useAcceptFriendRequest,
+    useDeclineFriendRequest,
+    useFriendRequests,
+    useFriends,
+} from "../../../../../hooks/use-friends";
 import type { Person } from "../../../../../utils/friendship";
 
 type Tab = "friends" | "requests";
@@ -33,6 +38,13 @@ const EMPTY_FILTERS: Filters = { search: "", uf: "", sort: "name" };
 
 const GRID = "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4";
 
+/**
+ * Lista vazia com identidade fixa, para o intervalo em que a consulta ainda não
+ * respondeu. Um `[]` novo a cada render invalidaria os `useMemo` de filtro e
+ * ordenação toda vez.
+ */
+const NO_PEOPLE: Person[] = [];
+
 export default function Home() {
     const { showToast } = useToaster();
 
@@ -43,84 +55,64 @@ export default function Home() {
     const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
     const [modalOpen, setModalOpen] = useState(false);
 
-    const [friends, setFriends] = useState<Person[]>([]);
-    const [requests, setRequests] = useState<Person[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [acceptingId, setAcceptingId] = useState<number | null>(null);
+    const friendsQuery = useFriends();
+    const requestsQuery = useFriendRequests();
 
-    useEffect(() => {
-        loadAll();
-    }, []);
+    const friends = friendsQuery.data ?? NO_PEOPLE;
+    const requests = requestsQuery.data ?? NO_PEOPLE;
 
-    async function loadAll() {
-        setLoading(true);
+    // `isPending` é só o primeiro carregamento: revalidar em segundo plano não
+    // devolve a tela ao esqueleto, ao contrário do `loading` que havia aqui
+    const loading = friendsQuery.isPending || requestsQuery.isPending;
+    const failed = friendsQuery.isError || requestsQuery.isError;
 
-        // get() engole o erro e devolve undefined — por isso o fallback [] aqui
-        const [friendsResponse, requestsResponse] = await Promise.all([
-            get("/social-media/friends"),
-            get("/social-media/friends/requests"),
-        ]);
+    const acceptMutation = useAcceptFriendRequest();
+    const declineMutation = useDeclineFriendRequest();
 
-        if (!friendsResponse || !requestsResponse) {
-            showToast({
-                title: "Amigos",
-                message: "Não foi possível carregar a sua lista.",
-                status: "error",
-            });
-        }
+    /**
+     * Card em processamento.
+     *
+     * `variables` é o argumento da chamada em andamento — some quando ela
+     * termina, então não há um `setAcceptingId(null)` para esquecer em algum
+     * caminho de erro.
+     */
+    const pendingId = acceptMutation.isPending
+        ? acceptMutation.variables
+        : declineMutation.isPending
+            ? declineMutation.variables
+            : null;
 
-        setFriends(friendsResponse?.data ?? []);
-        setRequests(requestsResponse?.data ?? []);
-        setLoading(false);
-    }
+    function acceptRequest(userId: number) {
+        const person = requests.find((candidate) => candidate.id === userId);
 
-    async function acceptRequest(userId: number) {
-        setAcceptingId(userId);
-
-        const response = await post("/social-media/friends/accept", { user_id: userId });
-
-        if (!response) {
-            showToast({
-                title: "Amigos",
-                message: "Não foi possível aceitar a solicitação.",
-                status: "error",
-            });
-            setAcceptingId(null);
-            return;
-        }
-
-        const accepted = requests.find((person) => person.id === userId);
-
-        setRequests((current) => current.filter((person) => person.id !== userId));
-        if (accepted) {
-            setFriends((current) => [{ ...accepted, friendship_status: "friends" }, ...current]);
-        }
-
-        showToast({
-            title: "Amigos",
-            message: `Agora vocês são amigos${accepted ? `, ${accepted.name}` : ""}!`,
-            status: "success",
+        acceptMutation.mutate(userId, {
+            onSuccess: () => {
+                showToast({
+                    title: "Amigos",
+                    message: `Agora vocês são amigos${person ? `, ${person.name}` : ""}!`,
+                    status: "success",
+                });
+            },
+            onError: () => {
+                showToast({
+                    title: "Amigos",
+                    message: "Não foi possível aceitar a solicitação.",
+                    status: "error",
+                });
+            },
         });
-        setAcceptingId(null);
     }
 
-    async function declineRequest(userId: number) {
-        setAcceptingId(userId);
-
-        const response = await post("/social-media/friends/decline", { user_id: userId });
-
-        setAcceptingId(null);
-
-        if (!response) {
-            showToast({
-                title: "Amigos",
-                message: "Não foi possível recusar a solicitação.",
-                status: "error",
-            });
-            return;
-        }
-
-        setRequests((current) => current.filter((person) => person.id !== userId));
+    function declineRequest(userId: number) {
+        declineMutation.mutate(userId, {
+            onError: () => {
+                showToast({
+                    title: "Amigos",
+                    message: "Não foi possível recusar a solicitação.",
+                    status: "error",
+                });
+            },
+        });
     }
 
     const list = tab === "friends" ? friends : requests;
@@ -255,7 +247,35 @@ export default function Home() {
                             </div>
                         )}
 
-                        {!loading && filtered.length > 0 && (
+                        {/* Falha de rede tem tela própria: antes o get() devolvia
+                            undefined e o erro chegava aqui como lista vazia, ou
+                            seja, "você ainda não tem amigos" */}
+                        {!loading && failed && (
+                            <div className="flex flex-col items-center gap-3 rounded-card border border-dashed
+                                border-line px-6 py-14 text-center">
+                                <h2 className="text-base font-semibold">
+                                    Não foi possível carregar a sua lista
+                                </h2>
+
+                                <p className="max-w-sm text-sm text-content-muted">
+                                    A conexão com o servidor falhou. Suas amizades continuam lá.
+                                </p>
+
+                                <Button
+                                    variant="outline"
+                                    size="md"
+                                    onClick={() => {
+                                        friendsQuery.refetch();
+                                        requestsQuery.refetch();
+                                    }}
+                                    className="mt-1 font-semibold"
+                                >
+                                    Tentar de novo
+                                </Button>
+                            </div>
+                        )}
+
+                        {!loading && !failed && filtered.length > 0 && (
                             <div className={GRID}>
                                 {tab === "friends"
                                     ? filtered.map((person) => (
@@ -270,13 +290,13 @@ export default function Home() {
                                             }))}
                                             acceptRequest={acceptRequest}
                                             declineRequest={declineRequest}
-                                            pendingId={acceptingId}
+                                            pendingId={pendingId}
                                         />
                                     )}
                             </div>
                         )}
 
-                        {!loading && filtered.length === 0 && (
+                        {!loading && !failed && filtered.length === 0 && (
                             <div className="flex flex-col items-center gap-3 rounded-card border border-dashed
                                 border-line px-6 py-14 text-center">
                                 <span className="flex size-16 items-center justify-center rounded-full

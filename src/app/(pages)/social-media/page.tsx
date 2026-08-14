@@ -2,7 +2,7 @@
 
 import Image from "../../../../components/remote-image";
 
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Feed from "../../../../components/feed";
@@ -14,7 +14,7 @@ import AirPlaneIcon from "../../../../components/icons/airplane";
 import { post, get, postFormData } from "../../../api/services/request";
 import Stories from "../../../../components/stories/stories";
 import Skeleton from "../../../../components/skeleton";
-import { AppContext } from "./layout";
+import { useMyInfo } from "../../../../stores/use-session-store";
 import RingImage from "../../../../components/ring-image";
 import ColorButtom from "../../../../components/color-button";
 import Card from "../../../../components/card";
@@ -60,8 +60,7 @@ export default function Home() {
   const [loadingCommunities, setLoadingCommunities] = useState(true);
   const [events, setEvents] = useState<CommunityEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
-  const context = useContext(AppContext);
-  const { myInfo } = context;
+  const myInfo = useMyInfo();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleButtonClick = () => {

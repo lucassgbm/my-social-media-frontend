@@ -1,13 +1,20 @@
 'use client';
 
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import Button, { type ButtonSize } from "../button";
+import ConfirmModal from "../confirm-modal";
 import PlusIcon from "../icons/plus";
 import CheckIcon from "../icons/check";
 import ClockIcon from "../icons/clock";
 import UsersIcon from "../icons/users";
-import { post } from "@/api/services/request";
+import UserMinusIcon from "../icons/user-minus";
+import {
+    useAcceptFriendRequest,
+    useSendFriendRequest,
+    useUnfriend,
+} from "../../hooks/use-friends";
 import { useToaster } from "../../providers/toaster-provider";
+import { errorMessage } from "../../utils/api-error";
 import type { FriendshipStatus, Person } from "../../utils/friendship";
 
 type AddFriendButtonProps = {
@@ -26,6 +33,10 @@ type AddFriendButtonProps = {
  *
  * Quem já me convidou é aceito direto daqui — sem esse atalho, o único caminho
  * seria abrir a aba de solicitações.
+ *
+ * Já sendo amigos, o botão desfaz a amizade, mas só depois da confirmação: o
+ * vínculo levou o aceite das duas partes para existir e um clique errado no
+ * card não pode desmanchá-lo.
  */
 export default function AddFriendButton({
     person,
@@ -36,46 +47,96 @@ export default function AddFriendButton({
 }: AddFriendButtonProps) {
     const { showToast } = useToaster();
 
+    /**
+     * O botão também vive em listas que não passam pelo React Query (resultados
+     * da busca, membros de comunidade), então guarda o próprio estado. As
+     * mutações abaixo invalidam o cache de amizade para as telas que passam.
+     */
     const [status, setStatus] = useState<FriendshipStatus>(
         person.friendship_status ?? "none"
     );
-    const [sending, setSending] = useState(false);
+    const [confirmingUnfriend, setConfirmingUnfriend] = useState(false);
+
+    const sendRequest = useSendFriendRequest();
+    const acceptRequest = useAcceptFriendRequest();
+    const unfriendRequest = useUnfriend();
+
+    const sending =
+        sendRequest.isPending || acceptRequest.isPending || unfriendRequest.isPending;
 
     // o próprio usuário não tem o que adicionar
     if (status === "self") return null;
 
-    async function handleClick() {
-        setSending(true);
+    /**
+     * O botão mora dentro do <Link> do card: sem barrar o clique, adicionar
+     * alguém levava junto para o perfil dessa pessoa.
+     */
+    function handleClick(event: MouseEvent<HTMLButtonElement>) {
+        event.preventDefault();
+        event.stopPropagation();
 
-        // aceitar e convidar são endpoints diferentes, mas para quem clica é o
-        // mesmo gesto: "quero ser amigo desta pessoa"
-        const accepting = status === "request_received";
-
-        const response = accepting
-            ? await post("/social-media/friends/accept", { user_id: person.id })
-            : await post("/social-media/friends/send-request", { friend_id: person.id });
-
-        setSending(false);
-
-        // post() devolve undefined quando a requisição falha
-        if (!response?.status) {
-            showToast({
-                title: "Amigos",
-                message: `Não foi possível ${accepting ? "aceitar o convite" : "enviar o convite"}.`,
-                status: "error",
-            });
+        if (status === "friends") {
+            setConfirmingUnfriend(true);
             return;
         }
 
-        const next = response.status as FriendshipStatus;
+        sendOrAccept();
+    }
 
-        setStatus(next);
-        onStatusChange?.(person.id, next);
+    function sendOrAccept() {
+        // aceitar e convidar são endpoints diferentes, mas para quem clica é o
+        // mesmo gesto: "quero ser amigo desta pessoa"
+        const accepting = status === "request_received";
+        const mutation = accepting ? acceptRequest : sendRequest;
 
-        showToast({
-            title: "Amigos",
-            message: response.message ?? "Convite enviado!",
-            status: "success",
+        mutation.mutate(person.id, {
+            onSuccess: (response) => {
+                // conflitos previsíveis (já são amigos, convite repetido) voltam
+                // como 200 com o estado real — o backend é quem decide
+                const next = response.status ?? (accepting ? "friends" : "request_sent");
+
+                setStatus(next);
+                onStatusChange?.(person.id, next);
+
+                showToast({
+                    title: "Amigos",
+                    message: response.message ?? "Convite enviado!",
+                    status: "success",
+                });
+            },
+            onError: (error) => {
+                showToast({
+                    title: "Amigos",
+                    message: errorMessage(
+                        error,
+                        `Não foi possível ${accepting ? "aceitar o convite" : "enviar o convite"}.`
+                    ),
+                    status: "error",
+                });
+            },
+        });
+    }
+
+    function unfriend() {
+        unfriendRequest.mutate(person.id, {
+            onSuccess: (response) => {
+                setStatus("none");
+                onStatusChange?.(person.id, "none");
+                setConfirmingUnfriend(false);
+
+                showToast({
+                    title: "Amigos",
+                    message: response.message ?? `Você desfez a amizade com ${person.name}.`,
+                    status: "success",
+                });
+            },
+            onError: (error) => {
+                showToast({
+                    title: "Amigos",
+                    message: errorMessage(error, "Não foi possível desfazer a amizade."),
+                    status: "error",
+                });
+            },
         });
     }
 
@@ -98,21 +159,52 @@ export default function AddFriendButton({
     const Icon = icons[status];
     const label = labels[status];
 
-    // pendente e amizade fechada não têm ação: viram indicador de estado
-    const inactive = status === "request_sent" || status === "friends";
+    // o convite pendente depende da outra pessoa: vira indicador de estado
+    const inactive = status === "request_sent";
+
+    /** "Amigos" é o estado; o que o clique faz é outra coisa e precisa ser dito. */
+    const hint = status === "friends" ? `Desfazer amizade com ${person.name}` : label;
 
     return (
-        <Button
-            variant={status === "none" || status === "request_received" ? "primary" : "secondary"}
-            size={iconOnly ? "icon" : size}
-            disabled={sending || inactive}
-            onClick={handleClick}
-            aria-label={iconOnly ? `${label} — ${person.name}` : undefined}
-            title={iconOnly ? label : undefined}
-            className={className}
-        >
-            <Icon className="size-4 shrink-0" />
-            {!iconOnly && label}
-        </Button>
+        <>
+            <Button
+                variant={status === "none" || status === "request_received" ? "primary" : "secondary"}
+                size={iconOnly ? "icon" : size}
+                disabled={sending || inactive}
+                onClick={handleClick}
+                aria-label={iconOnly ? hint : undefined}
+                title={iconOnly || status === "friends" ? hint : undefined}
+                className={`group/friend ${className}`}
+            >
+                {/* já amigos, o ícone troca no hover: "Amigos" é o estado, e sem
+                    isso nada na tela diz que dá para clicar ali */}
+                {status === "friends" ? (
+                    <>
+                        <UsersIcon className="size-4 shrink-0 group-hover/friend:hidden" />
+                        <UserMinusIcon className="hidden size-4 shrink-0 group-hover/friend:block" />
+                    </>
+                ) : (
+                    <Icon className="size-4 shrink-0" />
+                )}
+                {!iconOnly && label}
+            </Button>
+
+            <ConfirmModal
+                isOpen={confirmingUnfriend}
+                onClose={() => setConfirmingUnfriend(false)}
+                onConfirm={unfriend}
+                title="Desfazer amizade"
+                description={
+                    <>
+                        <strong className="font-semibold text-content">{person.name}</strong> sai
+                        da sua lista de amigos, e você da lista dessa pessoa. Ninguém é avisado, e
+                        um novo convite pode ser enviado depois.
+                    </>
+                }
+                confirmLabel="Desfazer amizade"
+                confirmVariant="danger"
+                pending={sending}
+            />
+        </>
     );
 }

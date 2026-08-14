@@ -1,12 +1,13 @@
 'use client';
 
-import { useContext, useEffect, useState } from "react";
+import { type ComponentType } from "react";
 import Image from "./remote-image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Container from "./container";
 import Skeleton from "./skeleton";
-import { AppContext } from "@/app/(pages)/social-media/layout";
+import { useMyInfo } from "../stores/use-session-store";
+import { useUiStore } from "../stores/use-ui-store";
 import Card from "./card";
 import RingImage from "./ring-image";
 import PinIcon from "./icons/pin";
@@ -20,8 +21,7 @@ import {
     isNavItemActive,
     type NavItem,
 } from "./nav-items";
-
-const STORAGE_KEY = "sidebar:collapsed";
+import { compactCount } from "../utils/format";
 
 function SidebarLink({
     item,
@@ -75,26 +75,56 @@ function SidebarLink({
     );
 }
 
+/**
+ * Uma linha do quadro de números do perfil (amigos, comunidades).
+ *
+ * O valor vem de GET /social-media/user — antes eram 213 e 16 escritos à mão.
+ * Recolhida, a sidebar mostra só o ícone e o número; o rótulo fica no `title`
+ * e no leitor de tela.
+ */
+function SidebarCount({
+    icon: Icon,
+    label,
+    value,
+    loading,
+    expanded,
+}: {
+    icon: ComponentType<{ className?: string }>;
+    label: string;
+    value?: number;
+    loading: boolean;
+    expanded: boolean;
+}) {
+    return (
+        <div className="flex w-full flex-row items-center justify-between gap-2" title={label}>
+            <span className="flex items-center gap-2 text-content-muted">
+                <Icon className="size-3.5 shrink-0" />
+                <span className={expanded ? "hidden lg:inline text-[11px]" : "sr-only"}>
+                    {label}
+                </span>
+            </span>
+
+            {loading ? (
+                <Skeleton height="h-3" width="w-6" rounded="sm" />
+            ) : (
+                // title com o número exato: o formato compacto arredonda para baixo
+                <span className="text-[11px] font-semibold" title={String(value ?? 0)}>
+                    {compactCount(value)}
+                </span>
+            )}
+        </div>
+    );
+}
+
 export default function Sidebar() {
-    const context = useContext(AppContext);
     const pathname = usePathname();
-    const { myInfo } = context;
+    const myInfo = useMyInfo();
 
-    // Começa expandida no servidor e no primeiro render; a preferência salva
-    // é aplicada depois da montagem para não gerar divergência de hidratação.
-    const [collapsed, setCollapsed] = useState(false);
-
-    useEffect(() => {
-        setCollapsed(window.localStorage.getItem(STORAGE_KEY) === "1");
-    }, []);
-
-    function toggle() {
-        setCollapsed((current) => {
-            const next = !current;
-            window.localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
-            return next;
-        });
-    }
+    // Começa expandida no servidor e no primeiro render; a preferência salva é
+    // aplicada depois da montagem para não gerar divergência de hidratação —
+    // quem faz isso agora é o `persist` do store, com `skipHydration`.
+    const collapsed = useUiStore((state) => state.sidebarCollapsed);
+    const toggle = useUiStore((state) => state.toggleSidebar);
 
     const expanded = !collapsed;
     const imageUser = myInfo?.photo ?? '/imgs/placeholder.png';
@@ -117,7 +147,7 @@ export default function Sidebar() {
                             aria-label={expanded ? "Recolher menu" : "Expandir menu"}
                             aria-expanded={expanded}
                             title={expanded ? "Recolher menu" : "Expandir menu"}
-                            className="rounded-full p-1.5 text-content-muted hover:bg-surface-2 hover:text-content
+                            className="rounded-full p-1.5 text-content-muted bg-surface-2 hover:bg-surface-3 hover:text-content
                                 transition-colors cursor-pointer
                                 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
                         >
@@ -153,10 +183,16 @@ export default function Sidebar() {
                                 {myInfo.name}
                             </p>
 
-                            <div className="flex mt-2 items-center gap-1">
-                                <PinIcon className="size-3 text-brand" />
-                                <span className="text-xs text-content-muted">DF</span>
-                            </div>
+                            {/* a linha inteira sai quando não há UF: o pin
+                                sozinho não diz nada. Era "DF" fixo no código */}
+                            {myInfo.uf && (
+                                <div className="flex mt-2 items-center gap-1">
+                                    <PinIcon className="size-3 text-brand" />
+                                    <span className="text-[11px] text-content-muted">
+                                        {myInfo.uf}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className="flex flex-row items-center justify-center gap-2 mb-6">
@@ -164,21 +200,21 @@ export default function Sidebar() {
                         </div>
                     )}
 
-                    <Card className="flex flex-col gap-2 p-3 mt-4">
-                        <div className="flex w-full flex-row items-center justify-between">
-                            <span className="flex items-center gap-2 text-content-muted">
-                                <UsersIcon className="size-4" />
-                                <span className={expanded ? "hidden lg:inline text-xs" : "sr-only"}>Amigos</span>
-                            </span>
-                            <span className="text-xs font-semibold">213</span>
-                        </div>
-                        <div className="flex w-full flex-row items-center justify-between">
-                            <span className="flex items-center gap-2 text-content-muted">
-                                <CommunityIcon className="size-4" />
-                                <span className={expanded ? "hidden lg:inline text-xs" : "sr-only"}>Comunidades</span>
-                            </span>
-                            <span className="text-xs font-semibold">16</span>
-                        </div>
+                    <Card className="flex flex-col gap-1.5 p-2.5 mt-4">
+                        <SidebarCount
+                            icon={UsersIcon}
+                            label="Amigos"
+                            value={myInfo?.friends_count}
+                            loading={!myInfo}
+                            expanded={expanded}
+                        />
+                        <SidebarCount
+                            icon={CommunityIcon}
+                            label="Comunidades"
+                            value={myInfo?.communities_count}
+                            loading={!myInfo}
+                            expanded={expanded}
+                        />
                     </Card>
 
                     <nav className="mt-6" aria-label="Seções">

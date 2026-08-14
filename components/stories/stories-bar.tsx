@@ -40,7 +40,7 @@ export default function StoriesBar({
     const others = groups.filter((group) => !group.is_mine);
 
     return (
-        <Container className="mb-4 rounded-card" padding="p-3">
+        <Container className="transparent mb-4 rounded-card" padding="p-3" transparent>
             <ul className="flex flex-row gap-4 overflow-x-auto scrollbar-hide list-none">
 
                 <li className="shrink-0">

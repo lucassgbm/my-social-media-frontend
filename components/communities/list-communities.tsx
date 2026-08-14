@@ -3,6 +3,7 @@ import Link from "next/link";
 import UsersIcon from "../icons/users";
 import MessageIcon from "../icons/message";
 import ArrowRightIcon from "../icons/arrow-right";
+import LockClosedIcon from "../icons/lock-closed";
 import type { Community, CommunityRole } from "../../utils/community";
 
 interface CommunitiesProps {
@@ -66,12 +67,26 @@ export default function ListCommunities({ communities, categoryNames }: Communit
                                     </span>
                                 )}
 
-                                {role && (
-                                    <span className="ml-auto shrink-0 rounded-full bg-brand px-2.5 py-1
-                                        text-[11px] font-semibold text-on-brand">
-                                        {role}
-                                    </span>
-                                )}
+                                {/* os dois selos da direita num grupo só: cada um
+                                    é opcional, e o ml-auto num deles deixaria o
+                                    outro grudado na categoria */}
+                                <div className="ml-auto flex shrink-0 flex-row items-start gap-2">
+                                    {community.is_private && (
+                                        <span className="flex flex-row items-center gap-1 rounded-full
+                                            bg-black/45 px-2.5 py-1 text-[11px] font-medium text-white
+                                            backdrop-blur-sm">
+                                            <LockClosedIcon className="size-3 shrink-0" />
+                                            Privada
+                                        </span>
+                                    )}
+
+                                    {role && (
+                                        <span className="rounded-full bg-brand px-2.5 py-1
+                                            text-[11px] font-semibold text-on-brand">
+                                            {role}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
 
                             <h3 className="absolute inset-x-0 bottom-0 truncate p-4 text-base font-semibold text-white">

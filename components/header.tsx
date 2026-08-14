@@ -1,6 +1,6 @@
 'use client';
 
-import { useContext, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "./remote-image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -8,18 +8,22 @@ import CloseIcon from "./icons/close";
 import MenuIcon from "./icons/menu";
 import ThemeToggle from "./theme-toggle";
 import InboxIcon from "./icons/inbox";
-import { AppContext } from "@/app/(pages)/social-media/layout";
+import { useMyInfo } from "../stores/use-session-store";
+import { useUiStore } from "../stores/use-ui-store";
 import Skeleton from "./skeleton";
 import Button from "./button";
 import RingImage from "./ring-image";
 import Submenu from "./submenu";
 import GlobalSearch from "./search/global-search";
+import LogoutButton from "./logout-button";
 import { accountNavItems, primaryNavItems, isNavItemActive } from "./nav-items";
 
 export default function Header() {
-    const context = useContext(AppContext);
     const pathname = usePathname();
-    const { myInfo, openMessages, setOpenMessages } = context;
+
+    const myInfo = useMyInfo();
+    const openMessages = useUiStore((state) => state.openMessages);
+    const toggleMessages = useUiStore((state) => state.toggleMessages);
 
     const [accountOpen, setAccountOpen] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
@@ -93,7 +97,7 @@ export default function Header() {
                 <div className="hidden md:flex shrink-0 items-center gap-4">
                     <div className="flex flex-row gap-2">
                         <Button
-                            onClick={() => setOpenMessages(!openMessages)}
+                            onClick={toggleMessages}
                             aria-label="Mensagens"
                             aria-expanded={openMessages}
                         >
@@ -146,6 +150,9 @@ export default function Header() {
                                             items={accountNavItems}
                                             onNavigate={() => setAccountOpen(false)}
                                         />
+                                        <li>
+                                            <LogoutButton onDone={() => setAccountOpen(false)} />
+                                        </li>
                                     </ul>
                                 </div>
                             )}
@@ -209,6 +216,10 @@ export default function Header() {
                                     items={accountNavItems}
                                     onNavigate={() => setMobileOpen(false)}
                                 />
+
+                                <li>
+                                    <LogoutButton onDone={() => setMobileOpen(false)} />
+                                </li>
                             </ul>
                         </div>
                     )}

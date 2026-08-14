@@ -7,7 +7,6 @@ import MessageIcon from "./icons/message";
 import SettingsIcon from "./icons/settings";
 import BookMarkIcon from "./icons/book-mark";
 import ProfileIcon from "./icons/profile";
-import ArrowRightIcon from "./icons/arrow-right";
 
 export type NavItem = {
   label: string;
@@ -35,10 +34,14 @@ export const secondaryNavItems: NavItem[] = [
   { label: "Preferências", href: "/social-media/settings", icon: SettingsIcon },
 ];
 
+/**
+ * Sair não entra aqui: esta lista é de navegação, e encerrar a sessão é uma
+ * ação — precisa chamar a API antes de sair da tela. Quem renderiza estes
+ * itens acrescenta o <LogoutButton /> logo abaixo.
+ */
 export const accountNavItems: NavItem[] = [
   { label: "Meu perfil", href: "/social-media/profile", icon: ProfileIcon },
   { label: "Preferências", href: "/social-media/settings", icon: SettingsIcon },
-  { label: "Sair", href: "/login", icon: ArrowRightIcon },
 ];
 
 /**

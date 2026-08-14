@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "../remote-image";
 import Card from "../card";
 import UsersIcon from "../icons/users";
+import LockClosedIcon from "../icons/lock-closed";
 import type { Community } from "../../utils/community";
 
 type CommunityCardProps = {
@@ -43,11 +44,22 @@ export default function CommunityCard({ community, showMembership = true }: Comm
                         <p className="text-xs text-content-muted truncate">{community.description}</p>
                     )}
 
-                    <span className="flex flex-row items-center gap-1 text-xs text-content-muted mt-0.5">
-                        <UsersIcon className="size-3 shrink-0" />
-                        {community.members_count === 1
-                            ? "1 membro"
-                            : `${community.members_count ?? 0} membros`}
+                    <span className="flex flex-row items-center gap-3 text-xs text-content-muted mt-0.5">
+                        <span className="flex flex-row items-center gap-1">
+                            <UsersIcon className="size-3 shrink-0" />
+                            {community.members_count === 1
+                                ? "1 membro"
+                                : `${community.members_count ?? 0} membros`}
+                        </span>
+
+                        {/* entrar aqui depende de convite: dizer isso no card
+                            evita a viagem até a comunidade para descobrir */}
+                        {community.is_private && (
+                            <span className="flex flex-row items-center gap-1">
+                                <LockClosedIcon className="size-3 shrink-0" />
+                                Privada
+                            </span>
+                        )}
                     </span>
                 </div>
 

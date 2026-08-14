@@ -1,6 +1,6 @@
 'use client';
 
-import { useContext, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "../../../../../../components/remote-image";
 import Container from "../../../../../../components/container";
@@ -16,7 +16,7 @@ import ImageCropper from "../../../../../../components/image-cropper";
 import PhotoIcon from "../../../../../../components/icons/photo";
 import PinIcon from "../../../../../../components/icons/pin";
 import PencilSquareIcon from "../../../../../../components/icons/pencil-square";
-import { AppContext, type MyInfo } from "../../layout";
+import { useSessionStore, useMyInfo, type MyInfo } from "../../../../../../stores/use-session-store";
 import { useToaster } from "../../../../../../providers/toaster-provider";
 import { postFormData } from "@/api/services/request";
 
@@ -156,7 +156,8 @@ function useImagePicker() {
 }
 
 export default function EditProfilePage() {
-    const { myInfo, setMyInfo } = useContext(AppContext);
+    const myInfo = useMyInfo();
+    const setMyInfo = useSessionStore((state) => state.setMyInfo);
     const { showToast } = useToaster();
 
     const [form, setForm] = useState<ProfileForm>(EMPTY_FORM);

@@ -1,91 +1,59 @@
 'use client';
 
-import { get } from "@/api/services/request";
-import { createContext, useEffect, useState } from "react";
+import { useEffect } from "react";
 import Header from "../../../../components/header";
 import BottomMenu from "../../../../components/bottom-menu";
 import Messages from "../../../../components/messages";
 import { RealtimeProvider } from "../../../../providers/realtime-provider";
+import { useSessionStore } from "../../../../stores/use-session-store";
+import { useUiStore } from "../../../../stores/use-ui-store";
 
 /**
- * Espelha App\Http\Resources\UserResource (GET /social-media/user).
- * Os campos nullable no banco chegam como null — daí os opcionais.
+ * Casca da área logada.
+ *
+ * A sessão e a gaveta de mensagens moravam num `AppContext` criado e exportado
+ * daqui. Um arquivo de layout do App Router só pode exportar o componente e as
+ * chaves que o Next conhece (`metadata`, `generateStaticParams`...), então
+ * aquele `export const AppContext` derrubava o `tsc` a cada verificação. Agora
+ * são stores em `stores/`, importáveis de qualquer lugar sem passar pelo
+ * arquivo de rota.
  */
-export type MyInfo = {
-  id: number;
-  name: string;
-  email: string;
-  /** URL assinada e temporária do R2 (10 min). Vazia quando não há foto. */
-  photo: string;
-  /** Caminho cru no bucket, sem assinatura. */
-  photo_url?: string | null;
-  /** Capa do perfil: URL assinada do R2, null enquanto o usuário não enviou uma. */
-  cover?: string | null;
-  cover_url?: string | null;
-  autodescription: string;
-  birthdate?: string | null;
-  age?: number | null;
-  city?: string | null;
-  uf?: string | null;
-  phone?: string | null;
-};
-
-type AppContextType = {
-  myInfo: MyInfo | null;
-  setMyInfo: React.Dispatch<React.SetStateAction<MyInfo | null>>;
-  openMessages: boolean;
-  setOpenMessages: React.Dispatch<React.SetStateAction<boolean>>;
-};
-
-export const AppContext = createContext<AppContextType>({} as AppContextType);
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
 
-  const [myInfo, setMyInfo] = useState<MyInfo | null>(null);
-  const [openMessages, setOpenMessages] = useState(false);
+  const loadMyInfo = useSessionStore((state) => state.loadMyInfo);
+  const openMessages = useUiStore((state) => state.openMessages);
 
   useEffect(() => {
-    getMyInfo();
-  }, []);
-
-  async function getMyInfo() {
-    try {
-      const response = await get("/social-media/user");
-      setMyInfo(response.data);
-    } catch (error: any) {
-      console.log(error);
-    }
-  }
+    loadMyInfo();
+  }, [loadMyInfo]);
 
   return (
-    <AppContext.Provider value={{ myInfo, setMyInfo, openMessages, setOpenMessages }}>
+    <>
       {/* A conexão vive acima do painel: ela precisa continuar de pé com a
           gaveta fechada, senão o contador de não lidas do Header congela. */}
       <RealtimeProvider>
-      <Header />
+        <Header />
 
-      <div className="min-h-screen bg-canvas text-content">
-        {/*
-          Layout em flex: a Sidebar controla a própria largura (w-20 / lg:w-60) e o
-          conteúdo ocupa o restante. Antes era um grid de 10 colunas arbitrário, que
-          espremia a sidebar em 1/10 e obrigava a usar frações como w-5/7.
-          pb-24 no mobile reserva espaço para o BottomMenu fixo.
-        */}
-        <div className="mx-auto flex w-full max-w-7xl gap-4 p-4 pb-24 md:pb-6 lg:gap-6 lg:p-6 lg:pb-6">
-          {children}
+        <div className="min-h-screen bg-canvas text-content">
+          {/*
+            Layout em flex: a Sidebar controla a própria largura (w-20 / lg:w-60) e o
+            conteúdo ocupa o restante. Antes era um grid de 10 colunas arbitrário, que
+            espremia a sidebar em 1/10 e obrigava a usar frações como w-5/7.
+            pb-24 no mobile reserva espaço para o BottomMenu fixo.
+          */}
+          <div className="mx-auto flex w-full max-w-7xl gap-4 p-4 pb-24 md:pb-6 lg:gap-6 lg:p-6 lg:pb-6">
+            {children}
+          </div>
+
+          {openMessages && <Messages />}
         </div>
 
-        {openMessages && (
-          <Messages openMessages={openMessages} setOpenMessages={setOpenMessages} />
-        )}
-      </div>
-
-      <BottomMenu />
+        <BottomMenu />
       </RealtimeProvider>
-    </AppContext.Provider>
+    </>
   );
 }

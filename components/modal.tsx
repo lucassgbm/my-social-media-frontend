@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Button from "./button";
 import CloseIcon from "./icons/close";
 
@@ -28,6 +29,14 @@ export default function Modal({
   const panelRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
   const titleId = useId();
+
+  // `document` só existe depois da hidratação; sem esta trava o portal
+  // quebraria a renderização no servidor
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // onClose costuma ser uma arrow inline no chamador, ou seja, muda de
   // identidade a cada render do pai. Guardá-la numa ref é o que permite os
@@ -105,9 +114,14 @@ export default function Modal({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
+  /**
+   * Fora da árvore de quem abriu: o modal do botão de amizade nasce dentro do
+   * <Link> do card, e daí qualquer clique nele — inclusive o de confirmar —
+   * subia até a âncora e navegava para o perfil no meio da ação.
+   */
+  return createPortal(
     <div className="fixed inset-0 flex items-center justify-center z-50">
       {/* Fundo escuro — apenas decorativo, o fechamento por teclado é o Esc */}
       <div
@@ -138,6 +152,7 @@ export default function Modal({
 
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

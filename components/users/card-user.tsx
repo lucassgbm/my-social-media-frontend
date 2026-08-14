@@ -32,52 +32,57 @@ export default function CardUser({ user, onStatusChange, actions }: CardUserProp
     const showFriendButton = !!status && status !== "self";
 
     return (
-        <div className="group relative w-full aspect-square min-h-[170px] overflow-hidden
-            rounded-card border border-line bg-surface-2">
+        <Link
+            href={`/social-media/profile/${user.id}`}        
+        >
 
-            <Image
-                src={user.photo || '/imgs/placeholder.png'}
-                alt=""
-                fill
-                sizes="(max-width: 640px) 50vw, 200px"
-                className="object-cover transition-transform duration-300 ease-in-out group-hover:scale-110"
-            />
+            
+            <div className="group relative w-full aspect-square min-h-[170px] overflow-hidden
+                rounded-card border border-line bg-surface-2">
 
-            {/* pt generoso: o gradiente precisa de espaço para nascer
-                transparente, senão o texto encosta numa borda dura */}
-            {/* navega por id: nome não é único e a API resolve os dois */}
-            <Link
-                href={`/social-media/profile/${user.id}`}
-                className="absolute inset-x-0 bottom-0 flex flex-col
-                    bg-linear-to-t from-black via-black/70 to-transparent p-3 pt-10 text-white
-                    focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-ring"
-            >
-                <span className="text-sm font-semibold truncate">{user.name}</span>
-                {/* {user.autodescription && (
-                    <p className="text-xs font-normal text-gray-200 line-clamp-2">
-                        {user.autodescription}
-                    </p>
-                )} */}
-                {location && (
-                    <p className="text-xs font-normal text-gray-300 truncate">{location}</p>
-                )}
-            </Link>
+                <Image
+                    src={user.photo || '/imgs/placeholder.png'}
+                    alt=""
+                    fill
+                    sizes="(max-width: 640px) 50vw, 200px"
+                    className="object-cover transition-transform duration-300 ease-in-out group-hover:scale-110"
+                />
 
-            {/* coluna única: as ações se empilham sozinhas sob o botão de
-                amizade, sem ninguém precisar acertar deslocamentos à mão */}
-            {(showFriendButton || actions) && (
-                <div className="absolute right-2 top-2 flex flex-col items-end gap-1">
-                    {showFriendButton && (
-                        <AddFriendButton
-                            person={user}
-                            iconOnly
-                            className="shadow-sm"
-                            onStatusChange={onStatusChange}
-                        />
+                {/* pt generoso: o gradiente precisa de espaço para nascer
+                    transparente, senão o texto encosta numa borda dura */}
+                {/* navega por id: nome não é único e a API resolve os dois */}
+                <div
+                    className="absolute inset-x-0 bottom-0 flex flex-col
+                        bg-linear-to-t from-black via-black/70 to-transparent p-3 pt-10 text-white
+                        focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-ring"
+                >
+                    <span className="text-sm font-semibold truncate">{user.name}</span>
+                    {/* {user.autodescription && (
+                        <p className="text-xs font-normal text-gray-200 line-clamp-2">
+                            {user.autodescription}
+                        </p>
+                    )} */}
+                    {location && (
+                        <p className="text-xs font-normal text-gray-300 truncate">{location}</p>
                     )}
-                    {actions}
                 </div>
-            )}
-        </div>
+
+                {/* coluna única: as ações se empilham sozinhas sob o botão de
+                    amizade, sem ninguém precisar acertar deslocamentos à mão */}
+                {(showFriendButton || actions) && (
+                    <div className="absolute right-2 top-2 flex flex-col items-end gap-1">
+                        {showFriendButton && (
+                            <AddFriendButton
+                                person={user}
+                                iconOnly
+                                className="shadow-sm"
+                                onStatusChange={onStatusChange}
+                            />
+                        )}
+                        {actions}
+                    </div>
+                )}
+            </div>
+        </Link>
     )
 }

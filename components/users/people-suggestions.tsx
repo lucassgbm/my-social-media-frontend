@@ -1,11 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from "react";
 import CardUser from "./card-user";
 import Skeleton from "../skeleton";
 import UsersIcon from "../icons/users";
-import { get } from "@/api/services/request";
-import type { FriendshipStatus, Person } from "../../utils/friendship";
+import { useFriendSuggestions } from "../../hooks/use-friends";
 
 type PeopleSuggestionsProps = {
     /** Quantas pessoas pedir à API. */
@@ -22,38 +20,23 @@ const DEFAULT_GRID = "grid grid-cols-2 gap-3";
  * Os três painéis de sugestão da aplicação (feed, lista de amigos e perfil)
  * mostravam o mesmo array fixo de sete pessoas fictícias. Agora vêm de
  * /social-media/friends/suggestions, que já exclui amigos e convites em
- * qualquer direção — quem foi convidado some da lista no próximo carregamento.
+ * qualquer direção.
+ *
+ * Quem é convidado some da lista sem ninguém aqui mandar: a mutação do botão
+ * invalida as chaves de amizade e esta consulta se refaz. Antes o componente
+ * filtrava a pessoa localmente, o que era um palpite sobre o que o servidor
+ * faria — e ficava errado no convite cruzado, que fecha amizade em vez de
+ * deixar o convite pendente.
  */
 export default function PeopleSuggestions({
     limit = 6,
     gridClassName = DEFAULT_GRID,
 }: PeopleSuggestionsProps) {
-    const [people, setPeople] = useState<Person[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { data, isPending } = useFriendSuggestions(limit);
 
-    useEffect(() => {
-        let active = true;
+    const people = data ?? [];
 
-        get(`/social-media/friends/suggestions?limit=${limit}`).then((response) => {
-            if (!active) return;
-
-            // get() engole o erro e devolve undefined — lista vazia é o fallback
-            setPeople(response?.data ?? []);
-            setLoading(false);
-        });
-
-        return () => {
-            active = false;
-        };
-    }, [limit]);
-
-    /** Depois de convidar, a pessoa sai da lista de sugestões. */
-    const handleStatusChange = useCallback((personId: number, status: FriendshipStatus) => {
-        if (status === "none") return;
-        setPeople((current) => current.filter((person) => person.id !== personId));
-    }, []);
-
-    if (loading) {
+    if (isPending) {
         return (
             <div className={gridClassName}>
                 {/* mesma caixa do CardUser: sem o min-h a lista pula de altura
@@ -84,7 +67,7 @@ export default function PeopleSuggestions({
     return (
         <div className={gridClassName}>
             {people.map((person) => (
-                <CardUser key={person.id} user={person} onStatusChange={handleStatusChange} />
+                <CardUser key={person.id} user={person} />
             ))}
         </div>
     );

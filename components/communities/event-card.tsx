@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "../remote-image";
 import Button from "../button";
+import SaveButton from "../saved/save-button";
 import PinIcon from "../icons/pin";
 import CloseIcon from "../icons/close";
 import UsersIcon from "../icons/users";
@@ -18,6 +19,8 @@ type EventCardProps = {
     onDelete?: (eventId: number) => void;
     /** Mostra de qual comunidade é o evento (a agenda geral mistura várias). */
     showCommunity?: boolean;
+    /** Avisa que o evento entrou ou saiu dos salvos. */
+    onSavedChange?: (eventId: number, saved: boolean) => void;
 };
 
 /**
@@ -35,6 +38,7 @@ export default function EventCard({
     onOpen,
     onDelete,
     showCommunity = false,
+    onSavedChange,
 }: EventCardProps) {
     const hasPhoto = !!event.photo;
     const overlayClass = `absolute inset-0 z-10 cursor-pointer rounded-card
@@ -146,15 +150,29 @@ export default function EventCard({
                 </span>
             )}
 
-            {onDelete && event.can_delete && (
-                <Button
-                    aria-label={`Apagar ${event.title}`}
-                    className="absolute right-2 top-2 z-20"
-                    onClick={() => onDelete(event.id)}
-                >
-                    <CloseIcon className="size-3" />
-                </Button>
-            )}
+            {/* ações ficam acima do overlay que abre o evento (z-20) e
+                empilhadas: apagar e salvar disputavam o mesmo canto */}
+            <div className="absolute right-2 top-2 z-20 flex flex-col items-end gap-1">
+                <SaveButton
+                    type="event"
+                    itemId={event.id}
+                    saved={event.viewer_saved}
+                    onChange={(saved) => onSavedChange?.(event.id, saved)}
+                    // sobre a foto a pastilha precisa ser escura; sem foto o
+                    // card segue o tema e ela destoaria
+                    variant={hasPhoto ? "floating" : "chip"}
+                    iconClassName="size-4"
+                />
+
+                {onDelete && event.can_delete && (
+                    <Button
+                        aria-label={`Apagar ${event.title}`}
+                        onClick={() => onDelete(event.id)}
+                    >
+                        <CloseIcon className="size-3" />
+                    </Button>
+                )}
+            </div>
         </div>
     );
 }

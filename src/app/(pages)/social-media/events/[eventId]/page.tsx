@@ -10,6 +10,7 @@ import Sidebar from "../../../../../../components/sidebar";
 import SidebarFooter from "../../../../../../components/sidebar-footer";
 import Button from "../../../../../../components/button";
 import Skeleton from "../../../../../../components/skeleton";
+import SaveButton from "../../../../../../components/saved/save-button";
 import AttendanceButtons from "../../../../../../components/communities/attendance-buttons";
 import AttendanceSummary from "../../../../../../components/communities/attendance-summary";
 import ArrowLeftIcon from "../../../../../../components/icons/arrow-left";
@@ -197,16 +198,31 @@ export default function EventPage() {
                                         <h1 className="text-2xl font-semibold break-words">{event.title}</h1>
                                     </div>
 
-                                    {event.can_delete && (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="shrink-0 text-danger"
-                                            onClick={handleDelete}
-                                        >
-                                            Apagar evento
-                                        </Button>
-                                    )}
+                                    <div className="flex shrink-0 flex-row items-center gap-2">
+                                        <SaveButton
+                                            type="event"
+                                            itemId={event.id}
+                                            saved={event.viewer_saved}
+                                            onChange={(saved) =>
+                                                setEvent((current) =>
+                                                    current ? { ...current, viewer_saved: saved } : current
+                                                )
+                                            }
+                                            label={event.viewer_saved ? "Salvo" : "Salvar"}
+                                            className="px-3 text-sm font-semibold"
+                                        />
+
+                                        {event.can_delete && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-danger"
+                                                onClick={handleDelete}
+                                            >
+                                                Apagar evento
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <dl className="flex flex-col gap-2 text-sm">

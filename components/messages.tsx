@@ -1,6 +1,6 @@
 'use client';
 
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "./remote-image";
 import Button from "./button";
@@ -14,7 +14,8 @@ import HeartIcon from "./icons/heart";
 import MessageIcon from "./icons/message";
 import SearchIcon from "./icons/search";
 import UsersIcon from "./icons/users";
-import { AppContext } from "@/app/(pages)/social-media/layout";
+import { useMyInfo } from "../stores/use-session-store";
+import { useUiStore } from "../stores/use-ui-store";
 import { useRealtime } from "../providers/realtime-provider";
 import { useToaster } from "../providers/toaster-provider";
 import {
@@ -22,11 +23,6 @@ import {
     type ChatMessage,
     type NotificationType,
 } from "../utils/realtime";
-
-type MessagesProps = {
-    openMessages?: boolean;
-    setOpenMessages: (open: boolean) => void;
-};
 
 type Tab = "messages" | "notifications";
 
@@ -56,8 +52,11 @@ const NOTIFICATION_STYLES: Record<
  * notificação por WebSocket depois. Antes tudo isto vinha de mocks/messages e
  * o envio só mexia no estado local.
  */
-export default function Messages({ setOpenMessages }: MessagesProps) {
-    const { myInfo } = useContext(AppContext);
+export default function Messages() {
+    const myInfo = useMyInfo();
+    // ação do store: identidade estável, então os efeitos abaixo que dependem
+    // dela não re-executam a cada render de quem renderiza a gaveta
+    const setOpenMessages = useUiStore((state) => state.setOpenMessages);
     const { showToast } = useToaster();
 
     const {

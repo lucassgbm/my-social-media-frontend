@@ -6,11 +6,14 @@ import Image from "../remote-image";
 import HeaderLogin from "./header-login";
 import Input from "../input";
 import FormButtom from "../form-buttom";
+import CodeInput, { CODE_LENGTH } from "../code-input";
 import { auth } from "@/api/services/auth";
-import { post, postFormData } from "@/api/services/request";
+import api, { post, postFormData } from "@/api/services/request";
+import { errorMessage, fieldErrors, isExpiredChallenge } from "../../utils/api-error";
 import { useToaster } from "../../providers/toaster-provider";
 
-export type AuthMode = "login" | "register" | "forgot";
+/** `two-factor` é o segundo passo do login, não uma aba própria. */
+export type AuthMode = "login" | "register" | "forgot" | "two-factor";
 
 type LoginErrors = { email?: string; password?: string };
 type RegisterErrors = {
@@ -66,12 +69,26 @@ export default function AuthForm({ initialMode = "login" }: { initialMode?: Auth
     const [forgotEmail, setForgotEmail] = useState("");
     const [forgotErrors, setForgotErrors] = useState<ForgotErrors>({});
 
+    // --- verificação em duas etapas ----------------------------------------
+    // o desafio identifica o login em andamento; ainda não há sessão nenhuma
+    const [challenge, setChallenge] = useState("");
+    const [emailHint, setEmailHint] = useState("");
+    const [code, setCode] = useState("");
+    const [codeError, setCodeError] = useState<string | undefined>();
+
     function switchMode(next: AuthMode) {
         setMode(next);
         dismissAll();
         setLoginErrors({});
         setRegisterErrors({});
         setForgotErrors({});
+
+        // sair do segundo passo abandona o desafio: voltar exige a senha de novo
+        if (next !== "two-factor") {
+            setChallenge("");
+            setCode("");
+            setCodeError(undefined);
+        }
     }
 
     // --- validações --------------------------------------------------------
@@ -114,7 +131,25 @@ export default function AuthForm({ initialMode = "login" }: { initialMode?: Auth
         setLoading(true);
 
         try {
-            await auth(login.email, login.password);
+            const response = await auth(login.email, login.password);
+
+            // 202: a senha está certa, mas a conta tem verificação em duas
+            // etapas — o cookie de sessão só vem depois do código
+            if (response?.two_factor_required) {
+                setChallenge(response.challenge);
+                setEmailHint(response.email_hint ?? login.email);
+                setCode("");
+                setCodeError(undefined);
+                setMode("two-factor");
+
+                showToast({
+                    title: "Verificação em duas etapas",
+                    message: response.message,
+                    status: "success",
+                });
+                return;
+            }
+
             showToast({
                 title: "Login",
                 message: "Login realizado com sucesso! Redirecionando...",
@@ -128,6 +163,76 @@ export default function AuthForm({ initialMode = "login" }: { initialMode?: Auth
                 message:
                     err?.response?.data?.message ??
                     "Não foi possível entrar. Tente novamente.",
+                status: "error",
+            });
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    /** Segundo passo do login: o código troca o desafio pelo cookie de sessão. */
+    async function handleTwoFactor(e: React.FormEvent) {
+        e.preventDefault();
+
+        if (code.length < CODE_LENGTH) {
+            setCodeError(`Digite os ${CODE_LENGTH} dígitos do código`);
+            return;
+        }
+
+        setLoading(true);
+        setCodeError(undefined);
+
+        try {
+            await api.post("/user/two-factor/verify", { challenge, code });
+
+            showToast({
+                title: "Login",
+                message: "Login realizado com sucesso! Redirecionando...",
+                status: "success",
+            });
+            router.push("/social-media");
+        } catch (err) {
+            // desafio morto (expirado ou tentativas esgotadas): o código novo
+            // exige recomeçar pela senha
+            if (isExpiredChallenge(err)) {
+                switchMode("login");
+            } else {
+                setCodeError(fieldErrors<"code">(err).code ?? "Código inválido");
+            }
+
+            showToast({
+                title: "Verificação em duas etapas",
+                message: errorMessage(err, "Não foi possível confirmar o código."),
+                status: "error",
+            });
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function resendCode() {
+        setLoading(true);
+        setCodeError(undefined);
+
+        try {
+            const { data } = await api.post("/user/two-factor/resend", { challenge });
+
+            // o desafio anterior foi invalidado no envio: seguir com o token
+            // antigo daria "código expirado" no acerto
+            setChallenge(data.challenge);
+            setCode("");
+
+            showToast({
+                title: "Verificação em duas etapas",
+                message: data.message,
+                status: "success",
+            });
+        } catch (err) {
+            if (isExpiredChallenge(err)) switchMode("login");
+
+            showToast({
+                title: "Verificação em duas etapas",
+                message: errorMessage(err, "Não foi possível reenviar o código."),
                 status: "error",
             });
         } finally {
@@ -318,6 +423,61 @@ export default function AuthForm({ initialMode = "login" }: { initialMode?: Auth
                                 >
                                     Esqueceu sua senha?
                                 </button>
+                            </form>
+                        )}
+
+                        {mode === "two-factor" && (
+                            <form onSubmit={handleTwoFactor} noValidate className="flex flex-col gap-4">
+                                <div>
+                                    <h1 className="text-lg font-semibold">Confirme que é você</h1>
+                                    <p className="text-xs text-neutral-400 mt-1">
+                                        Enviamos um código de {CODE_LENGTH} dígitos para{" "}
+                                        <strong className="text-white">{emailHint}</strong>. Ele vale
+                                        por 10 minutos.
+                                    </p>
+                                </div>
+
+                                <CodeInput
+                                    label="Código de verificação"
+                                    value={code}
+                                    onChange={(value) => {
+                                        setCode(value);
+                                        setCodeError(undefined);
+                                    }}
+                                    error={codeError}
+                                    disabled={loading}
+                                    autoFocus
+                                />
+
+                                <FormButtom
+                                    label="Entrar"
+                                    type="submit"
+                                    loading={loading}
+                                    className="w-full"
+                                />
+
+                                <div className="flex flex-row flex-wrap items-center gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={resendCode}
+                                        disabled={loading}
+                                        className="text-xs text-brand font-semibold cursor-pointer
+                                            disabled:opacity-50 disabled:cursor-not-allowed
+                                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                                    >
+                                        Reenviar código
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => switchMode("login")}
+                                        className="text-xs text-neutral-400 font-semibold cursor-pointer
+                                            hover:text-white
+                                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-ring"
+                                    >
+                                        Usar outra conta
+                                    </button>
+                                </div>
                             </form>
                         )}
 

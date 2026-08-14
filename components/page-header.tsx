@@ -29,17 +29,18 @@ export default function PageHeader({
 }: PageHeaderProps) {
     return (
         <div className="relative overflow-hidden rounded-t-card border-b border-line">
-            {/* véu preto em vez de tokens de superfície: escurece a faixa
-                nos dois temas, em vez de clarear no escuro */}
+            
             <div
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-0 bg-surface-2 bg-linear-to-br
-                    from-black/50 via-black/28 to-black/10"
+                className="pointer-events-none absolute inset-0 bg-surface-1
+                    dark:bg-linear-to-br dark:bg-surface-2"
             />
+            {/* o brilho difuso acompanha o degradê: sem ele, no claro, sobrava
+                um borrão cinza no canto de uma faixa chapada */}
             <div
                 aria-hidden="true"
-                className="pointer-events-none absolute -right-16 -top-24 size-56 rounded-full
-                    bg-content-subtle/20 blur-3xl"
+                className="pointer-events-none absolute -right-16 -top-24 hidden size-56 rounded-full
+                    bg-content-subtle/20 blur-3xl dark:block"
             />
 
             <div className="relative flex flex-col gap-5 p-4 sm:p-6">
